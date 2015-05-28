@@ -1,0 +1,8 @@
+sqlalchemy
+jinja2
+pymongo
+bottle
+pefile
+django
+chardet
+nose

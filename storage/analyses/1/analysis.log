@@ -1,0 +1,18 @@
+2015-05-27 10:40:20,009 [root] DEBUG: Starting analyzer from: C:\lvexbtdrzw
+2015-05-27 10:40:20,009 [root] DEBUG: Storing results at: C:\YYVmXWBuX
+2015-05-27 10:40:20,009 [root] DEBUG: Pipe server name: \\.\PIPE\aCycPHfoT
+2015-05-27 10:40:20,009 [root] DEBUG: No analysis package specified, trying to detect it automagically.
+2015-05-27 10:40:20,009 [root] INFO: Automatically selected analysis package "exe"
+2015-05-27 10:40:20,170 [root] DEBUG: Started auxiliary module Disguise
+2015-05-27 10:40:20,170 [root] DEBUG: Started auxiliary module Human
+2015-05-27 10:40:20,170 [modules.auxiliary.screenshots] WARNING: Python Image Library is not installed, screenshots are disabled
+2015-05-27 10:40:20,170 [root] DEBUG: Started auxiliary module Screenshots
+2015-05-27 10:40:20,210 [lib.api.process] INFO: Successfully executed process from path "C:\Users\saltar\AppData\Local\Temp\bf1bcdd06685e0bb979b108acf4f5f6e.exe" with arguments "" with pid 1472
+2015-05-27 10:40:20,210 [lib.api.process] DEBUG: Using QueueUserAPC injection.
+2015-05-27 10:40:20,210 [lib.api.process] INFO: Successfully injected process with pid 1472.
+2015-05-27 10:40:22,213 [lib.api.process] INFO: Successfully resumed process with pid 1472
+2015-05-27 10:40:22,973 [lib.api.process] INFO: Successfully injected process with pid 1472
+2015-05-27 10:40:22,973 [root] INFO: Added new process to list with pid: 1472
+2015-05-27 10:40:22,973 [root] INFO: Enabled timeout enforce, running for the full timeout.
+2015-05-27 10:40:23,674 [root] INFO: Added new file to list with path: C:\Users\saltar\AppData\Local\Temp\scs2A0E.tmp
+2015-05-27 10:40:23,734 [root] INFO: Added new file to list with path: C:\Users\saltar\AppData\Local\Temp\scs2A73.tmp

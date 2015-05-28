@@ -1,0 +1,5 @@
+@echo off
+lh C:\Windows\system32\mscdexnt.exe
+lh C:\Windows\system32\redir
+lh C:\Windows\system32\dosx
+SET BLASTER=A220 I5 D1 P330 T3

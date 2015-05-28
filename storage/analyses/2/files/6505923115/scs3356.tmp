@@ -1,0 +1,5 @@
+dos=high, umb
+device=C:\Windows\system32\himem.sys
+files=40
+country=055,850,C:\Windows\system32\country.sys
+shell=C:\Windows\System32\command.com /p C:\Windows\system32

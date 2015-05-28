@@ -1,0 +1,289 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utilities &mdash; Cuckoo Sandbox v1.2 Book</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Cuckoo Sandbox v1.2 Book" href="../index.html" />
+    <link rel="up" title="Usage" href="index.html" />
+    <link rel="next" title="Customization" href="../customization/index.html" />
+    <link rel="prev" title="Clean all Tasks and Samples" href="clean.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../customization/index.html" title="Customization"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="clean.html" title="Clean all Tasks and Samples"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Cuckoo Sandbox v1.2 Book</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Usage</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="utilities">
+<h1>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h1>
+<p>Cuckoo comes with a set of pre-built utilities to automate several common
+tasks.
+You can find them under the &#8220;utils&#8221; folder.</p>
+<div class="section" id="cleanup-utility">
+<span id="id1"></span><h2>Cleanup utility<a class="headerlink" href="#cleanup-utility" title="Permalink to this headline">¶</a></h2>
+<div class="deprecated">
+<p><span class="versionmodified">Deprecated since version 1.2: </span>Use <a class="reference internal" href="clean.html#cuckoo-clean"><em>./cuckoo.py &#8211;clean</em></a> instead which <em>also</em> takes
+care of cleaning sample and task information from MySQL and PostgreSQL
+databases.</p>
+</div>
+<p>If you want to delete all history, analysis, data and begin again from the first
+task you need the clean.sh utility.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Running clean.sh will delete: analysis results, binaries, SQLite database (if used) and logs.</p>
+</div>
+<p>To clean your setup, run:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/clean.sh
+</pre></div>
+</div>
+<p>This utility is designed to be used with Cuckoo (including API and web interface)
+not running.</p>
+<p>If you are using a custom database (MySQL, PostgreSQL or SQLite in custom
+location) clean.sh doesn&#8217;t clean it, you have to take care of that.</p>
+<p>If you are using the MongoDB reporting module clean.sh does <strong>not</strong> clean your
+database, you have to take care of that.</p>
+</div>
+<div class="section" id="submission-utility">
+<h2>Submission Utility<a class="headerlink" href="#submission-utility" title="Permalink to this headline">¶</a></h2>
+<p>Submits samples to analysis. This tool is already described in <a class="reference internal" href="submit.html"><em>Submit an Analysis</em></a>.</p>
+</div>
+<div class="section" id="web-utility">
+<h2>Web Utility<a class="headerlink" href="#web-utility" title="Permalink to this headline">¶</a></h2>
+<p>Cuckoo&#8217;s web interface. This tool is already described in <a class="reference internal" href="submit.html"><em>Submit an Analysis</em></a>.</p>
+</div>
+<div class="section" id="processing-utility">
+<h2>Processing Utility<a class="headerlink" href="#processing-utility" title="Permalink to this headline">¶</a></h2>
+<p>Run the results processing engine and optionally the reporting engine (run
+all reports) on an already available analysis folder, in order to not re-run
+the analysis if you want to re-generate the reports for it.
+This is used mainly in debugging and developing Cuckoo.
+For example if you want run again the report engine for analysis number 1:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/process.py 1
+</pre></div>
+</div>
+<p>If you want to re-generate the reports:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/process.py --report 1
+</pre></div>
+</div>
+<p>Following are the usage options:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/process.py -h
+
+usage: process.py [-h] [-d] [-r] [-p PARALLEL] id
+
+positional arguments:
+  id                    ID of the analysis to process (auto for continuous
+                        processing of unprocessed tasks).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --debug           Display debug messages
+  -r, --report          Re-generate report
+  -p PARALLEL, --parallel PARALLEL
+                        Number of parallel threads to use (auto mode only).
+</pre></div>
+</div>
+<p>As best practice we suggest to adopt the following configuration if you are
+running Cuckoo with many virtual machines:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Run a stand alone process.py in auto mode (you choose the number of parallel threads)</li>
+<li>Disable Cuckoo reporting in cuckoo.conf (set process_results to off)</li>
+</ul>
+</div></blockquote>
+<p>This could increase the performance of your system because the reporting is not
+yet demanded to Cuckoo.</p>
+</div>
+<div class="section" id="community-download-utility">
+<h2>Community Download Utility<a class="headerlink" href="#community-download-utility" title="Permalink to this headline">¶</a></h2>
+<p>This utility downloads signatures from <a class="reference external" href="https://github.com/cuckoobox/community">Cuckoo Community Repository</a> and installs
+specific additional modules in your local setup and for example update id with
+all the latest available signatures.
+Following are the usage options:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/community.py -h
+
+usage: community.py [-h] [-a] [-s] [-p] [-m] [-r] [-f] [-w] [-b BRANCH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -a, --all             Download everything
+  -s, --signatures      Download Cuckoo signatures
+  -p, --processing      Download processing modules
+  -m, --machinemanagers
+                        Download machine managers
+  -r, --reporting       Download reporting modules
+  -f, --force           Install files without confirmation
+  -w, --rewrite         Rewrite existing files
+  -b BRANCH, --branch BRANCH
+                        Specify a different branch
+</pre></div>
+</div>
+<p><em>Example</em>: install all available signatures:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/community.py --signatures --force
+</pre></div>
+</div>
+</div>
+<div class="section" id="database-migration-utility">
+<h2>Database migration utility<a class="headerlink" href="#database-migration-utility" title="Permalink to this headline">¶</a></h2>
+<p>This utility is developed to migrate your data between Cuckoo&#8217;s release.
+It&#8217;s developed on top of the <a class="reference external" href="http://alembic.readthedocs.org/en/latest/">Alembic</a> framework and it should provide data
+migration for both SQL database and Mongo database.
+This tool is already described in <a class="reference internal" href="../installation/upgrade.html"><em>Upgrade from a previous release</em></a>.</p>
+</div>
+<div class="section" id="stats-utility">
+<h2>Stats utility<a class="headerlink" href="#stats-utility" title="Permalink to this headline">¶</a></h2>
+<p>This is a really simple utility which prints some statistics about processed
+samples:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/stats.py
+
+1 samples in db
+1 tasks in db
+pending 0 tasks
+running 0 tasks
+completed 0 tasks
+recovered 0 tasks
+reported 1 tasks
+failed_analysis 0 tasks
+failed_processing 0 tasks
+roughly 32 tasks an hour
+roughly 778 tasks a day
+</pre></div>
+</div>
+</div>
+<div class="section" id="machine-utility">
+<h2>Machine utility<a class="headerlink" href="#machine-utility" title="Permalink to this headline">¶</a></h2>
+<p>The machine.py utility is designed to help you automatize the configuration of
+virtual machines in Cuckoo.
+It takes a list of machine details as arguments and write them in the specified
+configuration file of the machinery module enabled in <em>cuckoo.conf</em>.
+Following are the available options:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ./utils/machine.py -h
+usage: machine.py [-h] [--debug] [--add] [--ip IP] [--platform PLATFORM]
+                [--tags TAGS] [--interface INTERFACE] [--snapshot SNAPSHOT]
+                [--resultserver RESULTSERVER]
+                vmname
+
+positional arguments:
+  vmname                Name of the Virtual Machine.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --debug               Debug log in case of errors.
+  --add                 Add a Virtual Machine.
+  --ip IP               Static IP Address.
+  --platform PLATFORM   Guest Operating System.
+  --tags TAGS           Tags for this Virtual Machine.
+  --interface INTERFACE
+                        Sniffer interface for this machine.
+  --snapshot SNAPSHOT   Specific Virtual Machine Snapshot to use.
+  --resultserver RESULTSERVER
+                        IP:Port of the Result Server.
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/cuckoo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Utilities</a><ul>
+<li><a class="reference internal" href="#cleanup-utility">Cleanup utility</a></li>
+<li><a class="reference internal" href="#submission-utility">Submission Utility</a></li>
+<li><a class="reference internal" href="#web-utility">Web Utility</a></li>
+<li><a class="reference internal" href="#processing-utility">Processing Utility</a></li>
+<li><a class="reference internal" href="#community-download-utility">Community Download Utility</a></li>
+<li><a class="reference internal" href="#database-migration-utility">Database migration utility</a></li>
+<li><a class="reference internal" href="#stats-utility">Stats utility</a></li>
+<li><a class="reference internal" href="#machine-utility">Machine utility</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="clean.html"
+                        title="previous chapter">Clean all Tasks and Samples</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../customization/index.html"
+                        title="next chapter">Customization</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/usage/utilities.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../customization/index.html" title="Customization"
+             >next</a></li>
+        <li class="right" >
+          <a href="clean.html" title="Clean all Tasks and Samples"
+             >previous</a> |</li>
+        <li><a href="../index.html">Cuckoo Sandbox v1.2 Book</a> &raquo;</li>
+          <li><a href="index.html" >Usage</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010-2015, Cuckoo Foundation.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
