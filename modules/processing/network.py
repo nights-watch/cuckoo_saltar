@@ -71,6 +71,8 @@ class Pcap:
         self.irc_requests = []
         # Dictionary containing all the results of this processing.
         self.results = {}
+	# List of packages and the parser of this packages. Protocols parsing: IP, TCP, UDP, DNS, HTTP, SMTP and IRC
+	self.packages_parser_flow={}
 
     def _dns_gethostbyname(self, name):
         """Get host by name wrapper.
@@ -523,10 +525,23 @@ class Pcap:
                     tcp = ip.data
                     if not isinstance(tcp, dpkt.tcp.TCP):
                         tcp = dpkt.tcp.TCP(tcp)
-
+		    #if exist data of type TCP realize parser
                     if len(tcp.data) > 0:
-                        connection["sport"] = tcp.sport
-                        connection["dport"] = tcp.dport
+                        connection["sport"] = tcp.sport #Source port
+                        connection["dport"] = tcp.dport #Destination port
+			connection["seqnum"] = tcp.seq #Sequence number
+			connection["acknum"] = tcp.flags #Acknowledge number
+			connection["off"] = tcp.off #Data offset
+			connection["reserved"] = 0 #Reserved - always 0
+			connection["cb"] = self._tcp_flags(tcp.data) #Verify flag of control bits
+			connection["win"] = tcp.win #Window
+			connection["checksum"] = tcp.sum #Checksum
+			connection["up"] = tcp.urp #Urgent Pointer
+			
+			option_list=dpkt.tcp.parse_opts (tcp.opts) #Populate a list of options encountered in Options 
+			connection["options"] = option_list
+			
+
                         self._tcp_dissect(connection, tcp.data)
 
                         src, sport, dst, dport = (connection["src"], connection["sport"], connection["dst"], connection["dport"])
@@ -581,6 +596,29 @@ class Pcap:
         self.results["irc"] = self.irc_requests
 
         return self.results
+
+    def _tcp_flags(flags):
+	"""Identify flag TCP of a packet."""
+	flagReturn=''
+	if flags & dpkt.tcp.TH_FYN ):
+	        flagReturn = 'FIN'
+	if flags & dpkt.tcp.TH_SYN:
+	        flagReturn = 'SYN'
+	if flags & dpkt.tcp.TH_RST:
+	        flagReturn = 'RST'
+	if flags & dpkt.tcp.TH_PUSH:
+	        flagReturn = 'PUS'
+	if flags & dpkt.tcp.TH_ACK:
+	        flagReturn = 'ACK'
+	if flags & dpkt.tcp.TH_URG:
+	        flagReturn = 'URG'
+	if flags & dpkt.tcp.TH_ECE:
+	        flagReturn = 'ECE'
+	if flags & dpkt.tcp.TH_CWR:
+	        flagReturn = 'CWR'
+	
+	return flagReturn
+
 
 class NetworkAnalysis(Processing):
     """Network analysis."""
@@ -711,9 +749,16 @@ def sort_pcap(inpath, outpath):
 def flowtuple_from_raw(raw, linktype=1):
     """Parse a packet from a pcap just enough to gain a flow description tuple"""
     ip = iplayer_from_raw(raw, linktype)
-
+    
+    #Verify if package contain IP protocol
     if isinstance(ip, dpkt.ip.IP):
-        sip, dip = socket.inet_ntoa(ip.src), socket.inet_ntoa(ip.dst)
+	#ver = Version of format of the Internet Header
+	#hl = Internet Header Lenght (IHL)
+	#sip = Source IP
+	#dip = Destination IP
+	#opt = Options
+	#pad = Padding
+	sip, dip = socket.inet_ntoa(ip.src), socket.inet_ntoa(ip.dst)
         proto = ip.p
 
         if proto == dpkt.ip.IP_PROTO_TCP or proto == dpkt.ip.IP_PROTO_UDP:
