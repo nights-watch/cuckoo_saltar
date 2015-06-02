@@ -534,13 +534,7 @@ class Pcap:
 			connection["off"] = tcp.off #Data offset
 			connection["reserved"] = 0 #Reserved - always 0
 			connection["cb"] = self._tcp_flags(tcp.data) #Verify flag of control bits
-			connection["win"] = tcp.win #Window
-			connection["checksum"] = tcp.sum #Checksum
-			connection["up"] = tcp.urp #Urgent Pointer
-			
-			option_list=dpkt.tcp.parse_opts (tcp.opts) #Populate a list of options encountered in Options 
-			connection["options"] = option_list
-			
+
 
                         self._tcp_dissect(connection, tcp.data)
 
