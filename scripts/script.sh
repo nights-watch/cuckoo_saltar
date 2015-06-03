@@ -13,6 +13,7 @@
 #     Writing permissions in /opt. Commands:
 #          sudo chown $USER:root -R /opt/
 #          sudo chmod 755 -R /opt/
+#          * * * * * cd /opt/cuckoo_saltar/scripts; export DISPLAY:=0 && nohup ./script.sh &
 #     iptables script already executed in the machine, necessary for the 
 #     VM network to work.
 # ------------------------------------------------------------------
@@ -109,7 +110,7 @@ if [ ! -d $LOG_PATH ]; then
 	mkdir $LOG_PATH -m 775
 fi
 
-if ps ax | grep -v grep | grep $SERVICE > /dev/null; then
+if ps ax | grep -i cuckoo | grep -v grep > /dev/null; then
     echo -e $TIME  " $SERVICE service is running already. Exiting...\n"
 else
 	syncCuckooSignatures
