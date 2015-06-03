@@ -507,14 +507,29 @@ class Pcap:
                 ip = iplayer_from_raw(buf, pcap.datalink())
 
                 connection = {}
-                if isinstance(ip, dpkt.ip.IP):
+                if isinstance(ip, dpkt.ip.IP): # RFC 791
+                    connection["ver"] = ip.v_hl
+                    connection["headsize"] = ''# TODO not present in dpkt.ip.IP (maybe computed)
+                    connection["tos"] = ip.tos
+                    connection["pktsize"] = ip.len
+                    connection["id"] = ip.id
+                    connection["flags"] = '' # TODO not present in dpkt.ip.IP (maybe computed)
+                    connection["offset"] = ip.off
+                    connection["ttl"] = ip.ttl
+                    connection["prot"] = ip.p
+                    connection["ipsum"] = ip.sum
+                    connection["opts"] = '' # setted this way on dpkt.ip.IP
                     connection["src"] = socket.inet_ntoa(ip.src)
                     connection["dst"] = socket.inet_ntoa(ip.dst)
-                elif isinstance(ip, dpkt.ip6.IP6):
-                    connection["src"] = socket.inet_ntop(socket.AF_INET6,
-                                                         ip.src)
-                    connection["dst"] = socket.inet_ntop(socket.AF_INET6,
-                                                         ip.dst)
+                elif isinstance(ip, dpkt.ip6.IP6): # RFC 1883 (w/o extension headers)
+                    connection["ver"] = ip.v
+                    connection["prio"] = '' # TODO not present in dpkt.ip6.IP6 (maybe computed)
+                    connection["flow"] = '' # TODO not present in dpkt.ip6.IP6 (maybe computed)
+                    connection["paylen"] = ip.plen
+                    connection["nexthead"] = ip.nxt
+                    connection["hoplim"] = ip.hlim
+                    connection["src"] = socket.inet_ntop(socket.AF_INET6, ip.src)
+                    connection["dst"] = socket.inet_ntop(socket.AF_INET6, ip.dst)
                 else:
                     offset = file.tell()
                     continue
@@ -525,16 +540,15 @@ class Pcap:
                     tcp = ip.data
                     if not isinstance(tcp, dpkt.tcp.TCP):
                         tcp = dpkt.tcp.TCP(tcp)
-		    #if exist data of type TCP realize parser
+		            #if exists data of type TCP realize parser
                     if len(tcp.data) > 0:
                         connection["sport"] = tcp.sport #Source port
                         connection["dport"] = tcp.dport #Destination port
-			connection["seqnum"] = tcp.seq #Sequence number
-			connection["acknum"] = tcp.flags #Acknowledge number
-			connection["off"] = tcp.off #Data offset
-			connection["reserved"] = 0 #Reserved - always 0
-			connection["cb"] = self._tcp_flags(tcp.data) #Verify flag of control bits
-
+                        connection["seqnum"] = tcp.seq #Sequence number
+                        connection["acknum"] = tcp.flags #Acknowledge number
+                        connection["off"] = tcp.off #Data offset
+                        connection["reserved"] = 0 #Reserved - always 0
+                        connection["cb"] = self._tcp_flags(tcp.data) #Verify flag of control bits
 
                         self._tcp_dissect(connection, tcp.data)
 
@@ -551,6 +565,8 @@ class Pcap:
                     if len(udp.data) > 0:
                         connection["sport"] = udp.sport
                         connection["dport"] = udp.dport
+                        connection["ulen"] = udp.ulen
+                        connection["usum"] = udp.sum
                         self._udp_dissect(connection, udp.data)
 
                         src, sport, dst, dport = (connection["src"], connection["sport"], connection["dst"], connection["dport"])
