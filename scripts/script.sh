@@ -115,9 +115,9 @@ else
 	syncCuckooSignatures
 	syncYaraSignatures
 	startingVMs
-	#$PYTHON $CUCKOO_SCRIPT --clean
+	$PYTHON $CUCKOO_SCRIPT --clean
 	$PYTHON $SUBMIT_SCRIPT $MALWARE_PATH --enforce-timeout
-	$PYTHON $CUCKOO_SCRIPT >> $LOG_PATH/$LOGFILE 2>&1 # variavel para que o cron escreva o stream de dados no log.txt. 1 para STDOUT, 2 para STDERR.
+	$PYTHON $CUCKOO_SCRIPT -d >> $LOG_PATH/$LOGFILE 2>&1 # variavel para que o cron escreva o stream de dados no log.txt. 1 para STDOUT, 2 para STDERR.
 fi
 
 
