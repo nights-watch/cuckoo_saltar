@@ -35,7 +35,8 @@ TIME=$(date +"%T")
 GITCUCKOO="gitCuckooCommunity"
 GITYARA="gitYaraCommunity"
 
-
+GITCUCKOO_ADDR="https://github.com/cuckoobox/community.git"
+GITYARA_ADDR="https://github.com/citizenlab/malware-signatures.git"
 
 ##############################################################
 
@@ -66,7 +67,7 @@ function syncCuckooSignatures(){
 		mkdir $CUCKOO_SIG_DIR -m 775
 
 		echo -e $TIME " Cloning remote repository..."
-		git clone https://github.com/cuckoobox/community.git $CUCKOO_SIG_DIR/community
+		git clone $GITCUCKOO_ADDR $CUCKOO_SIG_DIR/community
 	fi
 
 	cd $CUCKOO_GIT_DIR
@@ -87,7 +88,7 @@ function syncYaraSignatures(){
 		mkdir $YARA_SIG_DIR -m 775
 
 		echo -e $TIME " Cloning remote repository..."
-		git clone https://github.com/citizenlab/malware-signatures.git $YARA_SIG_DIR
+		git clone $GITYARA_ADDR $YARA_SIG_DIR
 	fi
 
 	cd $YARA_SIG_DIR
