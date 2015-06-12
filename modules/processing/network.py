@@ -19,6 +19,7 @@ from lib.cuckoo.common.exceptions import CuckooProcessingError
 
 try:
     import dpkt
+
     IS_DPKT = True
 except ImportError:
     IS_DPKT = False
@@ -34,6 +35,7 @@ from collections import namedtuple
 TMPD = gettempdir()
 Keyed = namedtuple("Keyed", ["key", "obj"])
 Packet = namedtuple("Packet", ["raw", "ts"])
+
 
 class Pcap:
     """Reads network data from PCAP file."""
@@ -72,8 +74,8 @@ class Pcap:
         # Dictionary containing all the results of this processing.
         self.results = {}
         # List of packages and the parser of this packages. Protocols parsing: IP, TCP, UDP, DNS, HTTP, SMTP and IRC
-        self.packet=[]
-        self.packages_parser_flow={}
+        self.packet = []
+        self.packages_parser_flow = {}
 
     def _dns_gethostbyname(self, name):
         """Get host by name wrapper.
@@ -88,7 +90,7 @@ class Pcap:
 
     def _tcp_flags(self, flags):
         """Identify flag TCP of a packet."""
-        flagreturn=''
+        flagreturn = ''
         if flags & dpkt.tcp.TH_FYN:
             flagreturn = "FIN"
         elif flags & dpkt.tcp.TH_SYN:
@@ -109,7 +111,6 @@ class Pcap:
             flagreturn = "UNK"
 
         return flagreturn
-
 
     def _is_private_ip(self, ip):
         """Check if the IP belongs to private network blocks.
@@ -195,13 +196,12 @@ class Pcap:
         # IRC.
         elif conn["dport"] != 21 and self._check_irc(data):
             self._add_irc(data)
-        #Another protocol level 7 unknown
+        # Another protocol level 7 unknown
         else:
             self._add_unknow_indication()
 
-    def _add_unknow_indication(self,):
+    def _add_unknow_indication(self, ):
         """Indicate protocol unknown not parsed yet"""
-
 
     def _udp_dissect(self, conn, data):
         """Runs all UDP dissectors.
@@ -211,15 +211,15 @@ class Pcap:
         # Select DNS and MDNS traffic.
         # According of RFC 1035:
         #
-        #The DNS assumes that messages will be transmitted as datagrams or in a
-        #byte stream carried by a virtual circuit.  While virtual circuits can be
-        #used for any DNS activity, datagrams are preferred for queries due to
-        #their lower overhead and better performance.  Zone refresh activities
-        #must use virtual circuits because of the need for reliable transfer.
+        # The DNS assumes that messages will be transmitted as datagrams or in a
+        # byte stream carried by a virtual circuit.  While virtual circuits can be
+        # used for any DNS activity, datagrams are preferred for queries due to
+        # their lower overhead and better performance.  Zone refresh activities
+        # must use virtual circuits because of the need for reliable transfer.
 
-        #The Internet supports name server access using TCP [RFC-793] on server
-        #port 53 (decimal) as well as datagram access using UDP [RFC-768] on UDP
-        #port 53 (decimal).,
+        # The Internet supports name server access using TCP [RFC-793] on server
+        # port 53 (decimal) as well as datagram access using UDP [RFC-768] on UDP
+        # port 53 (decimal).,
         if conn["dport"] == 53 or conn["sport"] == 53 or conn["dport"] == 5353 or conn["sport"] == 5353:
             if self._check_dns(data):
                 self._add_dns(data)
@@ -230,7 +230,7 @@ class Pcap:
         """
         try:
             return isinstance(icmp_data, dpkt.icmp.ICMP) and \
-                len(icmp_data.data) > 0
+                   len(icmp_data.data) > 0
         except:
             return False
 
@@ -248,24 +248,24 @@ class Pcap:
                 return
 
             entry = {}
-            icmp={}
+            icmp = {}
             entry["src"] = conn["src"]
             entry["dst"] = conn["dst"]
             entry["type"] = data.type
 
-            #Populate ICMP package
-            icmp["type"]= data.type #Type
-            icmp["code"]= data.code #Code
-            icmp["checksum"]= data.sum #Checksum
+            # Populate ICMP package
+            icmp["type"] = data.type  # Type
+            icmp["code"] = data.code  # Code
+            icmp["checksum"] = data.sum  # Checksum
 
 
             # Extract data from dpkg.icmp.ICMP.
-            try: 
+            try:
                 entry["data"] = convert_to_printable(data.data.data)
-            except: 
+            except:
                 entry["data"] = ""
 
-            icmp["data"]= entry["data"] #Data
+            icmp["data"] = entry["data"]  # Data
 
             self.icmp_requests.append(entry)
             return icmp
@@ -284,33 +284,60 @@ class Pcap:
     def _add_dns(self, udpdata):
         """Adds a DNS data flow.
         @param udpdata: UDP data flow.
+
+        Struture of DNS Package
+
+
+
         """
         dns = dpkt.dns.DNS(udpdata)
         # RFC 1035
+        pdns = {}
+
+        # Parser of header section of procotol DNS. More information available in topic  4.1.1 of RFC 1035
+
+        pdns["id"] = ''  #A 16 bit identifier assigned by the program that generates any kind of query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries TODO: Id not implemented on DPKT
+        pdns["qr"] = dns.qr  # A one bit field that specifies whether this message is a query (0), or a response (1).
+        pdns["opcode"] = dns.opcode  # kind of query in this message. 0=Standard Query, 1=Inverse Query, 2=Server status and 3-15 reserved for future use
+        # AA, TC, RD, RA are flags of DNS package one or more tags are verificate
+        pdns["aa"] = dns.aa  # Authoritative Answer - valid in responses
+        pdns["tc"] = ''  # Truncation TODO: Truncation is not implemented on DPKT to return;
+        pdns["rd"] = dns.rd  # Recursion Desired
+        pdns["ra"] = dns.ra  # Recursion Available
+        pdns["z"] = dns.zero  # Reserved for future use. Must be zero
+        pdns["rcode"] = dns.rcode  # Response Code. 0=No Error, 1=Format error, 2=Server failure, 3=Name Error, 4=Not implemented, 5=Refused
+        pdns["qdcount"] = len(dns.qd)  # number of entries in the question section
+        pdns["ancount"] = len(dns.an)  # number of number of resource records in the answer section
+        pdns["nscount"] = len(dns.ns)  # number of name server resource records in the authority records section
+        pdns["arcount"] = len(dns.ar)  #  number of resource records in the additional records section
+
+        # DNS query parsing
+        #
+        #
+        #
         # Question section format
         #                                1  1  1  1  1  1
         #  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-        #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        #|                                               |
-        #/                     QNAME                     /
-        #/                                               /
-        #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        #|                     QTYPE                     |
-        #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        #|                     QCLASS                    |
-        #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        # DNS query parsing.
+        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        # |                                               |
+        # /                     QNAME                     /
+        # /                                               /
+        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        # |                     QTYPE                     |
+        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        # |                     QCLASS                    |
+        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
         query = {}
-        pdns={}
 
         if dns.rcode == dpkt.dns.DNS_RCODE_NOERR or \
-                dns.qr == dpkt.dns.DNS_R or \
-                dns.opcode == dpkt.dns.DNS_QUERY or True:
+                        dns.qr == dpkt.dns.DNS_R or \
+                        dns.opcode == dpkt.dns.DNS_QUERY or True:
             # DNS question.
             try:
-                q_name = dns.qd[0].name # Name
-                q_type = dns.qd[0].type # Type
-                q_class = dns.qd[0].cls # Class
+                q_name = dns.qd[0].name  # QNAME
+                q_type = dns.qd[0].type  # QTYPE
+                q_class = dns.qd[0].cls  # QCLASS
             except IndexError:
                 return False
 
@@ -336,9 +363,10 @@ class Pcap:
             elif q_type == dpkt.dns.DNS_SRV:
                 query["type"] = "SRV"
 
-            pdns["request"]=q_name #Name
-            pdns["type"]= query["type"] #Type
-            pdns["class"]=q_class #Class
+            pdns["request"] = q_name  # Name
+            pdns["type"] = query["type"]  # Type
+            pdns["class"] = q_class  # Class
+
             # DNS answer.
             query["answers"] = []
             for answer in dns.an:
@@ -370,13 +398,21 @@ class Pcap:
                     ans["data"] = answer.nsname
                 elif answer.type == dpkt.dns.DNS_SOA:
                     ans["type"] = "SOA"
+                    #Parser SOA
+                    #Primary NS 	    Variable length. The name of the Primary Master for the domain. May be a label, pointer or any combination.
+                    #Admin MB 	        Variable length. The administrator's mailbox. May be a label, pointer or any combination.
+                    #Serial Number 	    Unsigned 32-bit integer.
+                    #Refresh interval 	Unsigned 32-bit integer.
+                    #Retry Interval 	Unsigned 32-bit integer.
+                    #Expiration Limit 	Unsigned 32-bit integer.
+                    #Minimum TTL    	Unsigned 32-bit integer.
                     ans["data"] = ",".join([answer.mname,
-                                           answer.rname,
-                                           str(answer.serial),
-                                           str(answer.refresh),
-                                           str(answer.retry),
-                                           str(answer.expire),
-                                           str(answer.minimum)])
+                                            answer.rname,
+                                            str(answer.serial),
+                                            str(answer.refresh),
+                                            str(answer.retry),
+                                            str(answer.expire),
+                                            str(answer.minimum)])
                 elif answer.type == dpkt.dns.DNS_HINFO:
                     ans["type"] = "HINFO"
                     ans["data"] = " ".join(answer.text)
@@ -386,6 +422,7 @@ class Pcap:
 
                 # TODO: add srv handling
                 query["answers"].append(ans)
+                pdns["answers"].append(ans)  # append answers encountered in DNS package
 
             self._add_domain(query["request"])
 
@@ -528,8 +565,8 @@ class Pcap:
             reqs = ircMessage()
             filters_sc = ["266"]
             self.irc_requests = self.irc_requests + \
-                reqc.getClientMessages(tcpdata) + \
-                reqs.getServerMessagesFilter(tcpdata, filters_sc)
+                                reqc.getClientMessages(tcpdata) + \
+                                reqs.getServerMessagesFilter(tcpdata, filters_sc)
         except Exception:
             return False
 
@@ -580,33 +617,33 @@ class Pcap:
                 ip = iplayer_from_raw(buf, pcap.datalink())
 
                 connection = {}
-                pip={}
-                ptcp={}
-                pudp={}
-                picmp={}
-                psmtp={}
-                phttp={}
-                if isinstance(ip, dpkt.ip.IP): # RFC 791
+                pip = {}
+                ptcp = {}
+                pudp = {}
+                picmp = {}
+                psmtp = {}
+                phttp = {}
+                if isinstance(ip, dpkt.ip.IP):  # RFC 791
                     pip["ver"] = ip.v_hl
-                    pip["headsize"] = ''# TODO not present in dpkt.ip.IP (maybe computed)
+                    pip["headsize"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
                     pip["tos"] = ip.tos
                     pip["pktsize"] = ip.len
                     pip["id"] = ip.id
-                    pip["flags"] = '' # TODO not present in dpkt.ip.IP (maybe computed)
+                    pip["flags"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
                     pip["offset"] = ip.off
                     pip["ttl"] = ip.ttl
                     pip["prot"] = ip.p
                     pip["ipsum"] = ip.sum
-                    pip["opts"] = '' # setted this way on dpkt.ip.IP
+                    pip["opts"] = ''  # setted this way on dpkt.ip.IP
                     pip["src"] = socket.inet_ntoa(ip.src)
                     pip["dst"] = socket.inet_ntoa(ip.dst)
                     connection["src"] = socket.inet_ntoa(ip.src)
                     connection["dst"] = socket.inet_ntoa(ip.dst)
-                elif isinstance(ip, dpkt.ip6.IP6): # RFC 1883 (w/o extension headers)
-                    pip["procotol"]="IP"
+                elif isinstance(ip, dpkt.ip6.IP6):  # RFC 1883 (w/o extension headers)
+                    pip["procotol"] = "IP"
                     pip["ver"] = ip.v
-                    pip["prio"] = '' # TODO not present in dpkt.ip6.IP6 (maybe computed)
-                    pip["flow"] = '' # TODO not present in dpkt.ip6.IP6 (maybe computed)
+                    pip["prio"] = ''  # TODO not present in dpkt.ip6.IP6 (maybe computed)
+                    pip["flow"] = ''  # TODO not present in dpkt.ip6.IP6 (maybe computed)
                     pip["paylen"] = ip.plen
                     pip["nexthead"] = ip.nxt
                     pip["hoplim"] = ip.hlim
@@ -618,69 +655,73 @@ class Pcap:
                     offset = file.tell()
                     continue
 
-                #Populate package hierarchy to create a flow tuple
+                # Populate package hierarchy to create a flow tuple
 
                 self._add_hosts(connection)
-
+                # if payload of IP is a package TCP
                 if ip.p == dpkt.ip.IP_PROTO_TCP:
                     tcp = ip.data
                     if not isinstance(tcp, dpkt.tcp.TCP):
                         tcp = dpkt.tcp.TCP(tcp)
-		            #if exists data of type TCP realize parser
-                    #RFC 793
+                        # if exists data of type TCP realize parser
+                    # RFC 793
                     if len(tcp.data) > 0:
-                        #populate array of connections of Cuckoo default report
-                        connection["sport"] = tcp.sport #Source port
-                        connection["dport"] = tcp.dport #Destination port
-                        ptcp["sport"] = tcp.sport #Source port
-                        ptcp["dport"] = tcp.dport #Destination port
-                        ptcp["seqnum"] = tcp.seq #Sequence number
-                        ptcp["acknum"] = tcp.flags #Acknowledge number
-                        ptcp["off"] = tcp.off #Data offset
-                        ptcp["reserved"] = 0 #Reserved - always 0
-                        ptcp["cb"] = self._tcp_flags(tcp.data) #Verify flag of control bits
-                        ptcp["win"] = tcp.win #Window
-                        ptcp["cksum"] = tcp.sum #Checksum
-                        ptcp["urp"] = tcp.urp #Urgent Pointer
-                        ptcp["options"]=tcp.opts #Options
-                        ptcp["padding"]='' # TODO not present in dpkt.ip.IP (maybe computed)
-                        self._tcp_dissect(connection, tcp.data) #Verify payload of package TCP
+                        # populate array of connections of Cuckoo default report
+                        connection["sport"] = tcp.sport  # Source port
+                        connection["dport"] = tcp.dport  # Destination port
+                        ptcp["sport"] = tcp.sport  # Source port
+                        ptcp["dport"] = tcp.dport  # Destination port
+                        ptcp["seqnum"] = tcp.seq  # Sequence number
+                        ptcp["acknum"] = tcp.flags  # Acknowledge number
+                        ptcp["off"] = tcp.off  # Data offset
+                        ptcp["reserved"] = 0  # Reserved - always 0
+                        ptcp["cb"] = self._tcp_flags(tcp.data)  # Verify flag of control bits
+                        ptcp["win"] = tcp.win  # Window
+                        ptcp["cksum"] = tcp.sum  # Checksum
+                        ptcp["urp"] = tcp.urp  # Urgent Pointer
+                        ptcp["options"] = tcp.opts  # Options
+                        ptcp["padding"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
+                        self._tcp_dissect(connection, tcp.data)  # Verify payload of package TCP
 
-                        #Populate list of TCP Connections, default of Cuckoo sandbox
-                        src, sport, dst, dport = (connection["src"], connection["sport"], connection["dst"], connection["dport"])
-                        if not ((dst, dport, src, sport) in self.tcp_connections_seen or (src, sport, dst, dport) in self.tcp_connections_seen):
-                            self.tcp_connections.append((src, sport, dst, dport, offset, ts-first_ts))
+                        # Populate list of TCP Connections, default of Cuckoo sandbox
+                        src, sport, dst, dport = (
+                            connection["src"], connection["sport"], connection["dst"], connection["dport"])
+                        if not ((dst, dport, src, sport) in self.tcp_connections_seen or (
+                                src, sport, dst, dport) in self.tcp_connections_seen):
+                            self.tcp_connections.append((src, sport, dst, dport, offset, ts - first_ts))
                             self.tcp_connections_seen.add((src, sport, dst, dport))
-                #if payload of IP is a package UDP
+                # if payload of IP is a package UDP
                 elif ip.p == dpkt.ip.IP_PROTO_UDP:
                     udp = ip.data
                     if not isinstance(udp, dpkt.udp.UDP):
                         udp = dpkt.udp.UDP(udp)
 
                     if len(udp.data) > 0:
-                        #if exists data of type UDP realize parser
-                        #RFC 768
-                        connection["sport"] = udp.sport #Source port
-                        connection["dport"] = udp.dport #Destination port
-                        pudp["sport"] = udp.sport #Source port
-                        pudp["dport"] = udp.dport #Destination port
-                        pudp["ulen"] = udp.ulen #Length
-                        pudp["usum"] = udp.sum #Checksum
-                        self._udp_dissect(connection, udp.data) #Data Octets - Payload
+                        # if exists data of type UDP realize parser
+                        # RFC 768
+                        connection["sport"] = udp.sport  # Source port
+                        connection["dport"] = udp.dport  # Destination port
+                        pudp["sport"] = udp.sport  # Source port
+                        pudp["dport"] = udp.dport  # Destination port
+                        pudp["ulen"] = udp.ulen  # Length
+                        pudp["usum"] = udp.sum  # Checksum
+                        self._udp_dissect(connection, udp.data)  # Data Octets - Payload
 
-                        #Populate list of UDP Connections, default of Cuckoo sandbox
-                        src, sport, dst, dport = (connection["src"], connection["sport"], connection["dst"], connection["dport"])
-                        if not ((dst, dport, src, sport) in self.udp_connections_seen or (src, sport, dst, dport) in self.udp_connections_seen):
-                            self.udp_connections.append((src, sport, dst, dport, offset, ts-first_ts))
+                        # Populate list of UDP Connections, default of Cuckoo sandbox
+                        src, sport, dst, dport = (
+                            connection["src"], connection["sport"], connection["dst"], connection["dport"])
+                        if not ((dst, dport, src, sport) in self.udp_connections_seen or (
+                                src, sport, dst, dport) in self.udp_connections_seen):
+                            self.udp_connections.append((src, sport, dst, dport, offset, ts - first_ts))
                             self.udp_connections_seen.add((src, sport, dst, dport))
 
-                #if payload of IP is a package ICMP
+                # if payload of IP is a package ICMP
                 elif ip.p == dpkt.ip.IP_PROTO_ICMP:
                     icmp = ip.data
                     if not isinstance(icmp, dpkt.icmp.ICMP):
                         icmp = dpkt.icmp.ICMP(icmp)
 
-                    picmp=self._icmp_dissect(connection, icmp) #Populate Dictionary ICMP founded and parsed
+                    picmp = self._icmp_dissect(connection, icmp)  # Populate Dictionary ICMP founded and parsed
 
                 offset = file.tell()
             except AttributeError:
@@ -705,9 +746,10 @@ class Pcap:
         self.results["dns"] = self.dns_requests.values()
         self.results["smtp"] = self.smtp_requests
         self.results["irc"] = self.irc_requests
-        self.results["pcap_parser"]=[]
+        self.results["pcap_parser"] = []
 
         return self.results
+
 
 class NetworkAnalysis(Processing):
     """Network analysis."""
@@ -730,19 +772,21 @@ class NetworkAnalysis(Processing):
 
         return results
 
+
 def iplayer_from_raw(raw, linktype=1):
     """Converts a raw packet to a dpkt packet regarding of link type.
     @param raw: raw packet
     @param linktype: integer describing link type as expected by dpkt
     """
-    if linktype == 1: # ethernet
+    if linktype == 1:  # ethernet
         pkt = dpkt.ethernet.Ethernet(raw)
         ip = pkt.data
-    elif linktype == 101: # raw
+    elif linktype == 101:  # raw
         ip = dpkt.ip.IP(raw)
     else:
         raise CuckooProcessingError("unknown PCAP linktype")
     return ip
+
 
 def conn_from_flowtuple(ft):
     """Convert the flow tuple into a dictionary (suitable for JSON)"""
@@ -764,7 +808,7 @@ def batch_sort(input_iterator, output_path, buffer_size=32000, output_class=None
     chunks = []
     try:
         while True:
-            current_chunk = list(islice(input_iterator,buffer_size))
+            current_chunk = list(islice(input_iterator, buffer_size))
             if not current_chunk:
                 break
             current_chunk.sort()
@@ -787,6 +831,7 @@ def batch_sort(input_iterator, output_path, buffer_size=32000, output_class=None
             except Exception:
                 pass
 
+
 # magic
 class SortCap(object):
     """SortCap is a wrapper around the packet lib (dpkt) that allows us to sort pcaps
@@ -796,7 +841,7 @@ class SortCap(object):
         self.name = path
         self.linktype = linktype
         self.fd = None
-        self.ctr = 0 # counter to pass through packets without flow info (non-IP)
+        self.ctr = 0  # counter to pass through packets without flow info (non-IP)
         self.conns = set()
 
     def write(self, p):
@@ -834,25 +879,27 @@ class SortCap(object):
         self.conns.add(flowtuple)
         return Keyed((flowtuple, ts, self.ctr), rpkt)
 
+
 def sort_pcap(inpath, outpath):
     """Use SortCap class together with batch_sort to sort a pcap"""
     inc = SortCap(inpath)
     batch_sort(inc, outpath, output_class=lambda path: SortCap(path, linktype=inc.linktype))
     return 0
 
+
 def flowtuple_from_raw(raw, linktype=1):
     """Parse a packet from a pcap just enough to gain a flow description tuple"""
     ip = iplayer_from_raw(raw, linktype)
-    
-    #Verify if package contain IP protocol
+
+    # Verify if package contain IP protocol
     if isinstance(ip, dpkt.ip.IP):
-	#ver = Version of format of the Internet Header
-	#hl = Internet Header Lenght (IHL)
-	#sip = Source IP
-	#dip = Destination IP
-	#opt = Options
-	#pad = Padding
-	sip, dip = socket.inet_ntoa(ip.src), socket.inet_ntoa(ip.dst)
+        # ver = Version of format of the Internet Header
+        # hl = Internet Header Lenght (IHL)
+        # sip = Source IP
+        # dip = Destination IP
+        # opt = Options
+        # pad = Padding
+        sip, dip = socket.inet_ntoa(ip.src), socket.inet_ntoa(ip.dst)
         proto = ip.p
 
         if proto == dpkt.ip.IP_PROTO_TCP or proto == dpkt.ip.IP_PROTO_UDP:
@@ -868,12 +915,15 @@ def flowtuple_from_raw(raw, linktype=1):
     flowtuple = (sip, dip, sport, dport, proto)
     return flowtuple
 
+
 def payload_from_raw(raw, linktype=1):
     """Get the payload from a packet, the data below TCP/UDP basically"""
     ip = iplayer_from_raw(raw, linktype)
-    try: return ip.data.data
+    try:
+        return ip.data.data
     except:
         return ""
+
 
 def next_connection_packets(piter, linktype=1):
     """Extract all packets belonging to the same flow from a pcap packet iterator"""
@@ -892,6 +942,7 @@ def next_connection_packets(piter, linktype=1):
             "raw": payload_from_raw(raw, linktype).encode("base64"), "direction": first_ft == ft,
         }
 
+
 def packets_for_stream(fobj, offset):
     """Open a PCAP, seek to a packet offset, then get all packets belonging to the same connection"""
     pcap = dpkt.pcap.Reader(fobj)
@@ -902,8 +953,10 @@ def packets_for_stream(fobj, offset):
     for p in next_connection_packets(pcapiter, linktype=pcap.datalink()):
         yield p
 
+
 def package_json(package):
     """
-     Create a hierarchical package in format to json
+     Create a hierarchical package i
+format to json
     """
 
