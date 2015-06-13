@@ -286,7 +286,34 @@ class Pcap:
         @param udpdata: UDP data flow.
 
         Struture of DNS Package
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |00	|01	|02	|03	|04	|05	|06	|07	|08	|09	|10	|11	|12	|13	|14	|15 |16	|17	|18	|19	|20	|21	|22	|23	|24	|25	|26	|27	|28	|29	|30	|31 |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                        Identification                         |QR |   Opcode 	    |AA	|TC |RD |RA |Z 	|AD |CD |     Rcode     |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                       Total Questions 	                    |                       Total Answer RRs                        |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                       Total Authority RRs 	                |                      Total Additional RRs                     |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                                                       Questions [] :::                                                        |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                                                       Answer RRs [] :::                                                       |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                                                      Authority RRs [] :::                                                     |
+        |-------------------------------------------------------------------------------------------------------------------------------|
+        |                                                     Additional RRs [] :::                                                     |
+        |-------------------------------------------------------------------------------------------------------------------------------|
 
+        RFC References for project SALTAR
+        RFC 1035 - DOMAIN NAMES - IMPLEMENTATION AND SPECIFICATION - https://www.ietf.org/rfc/rfc1035.txt
+        RFC 2136 - Dynamic Updates in the Domain Name System (DNS UPDATE) - https://www.ietf.org/rfc/rfc2136.txt
+        RFC 2671 - Extension Mechanisms for DNS (EDNS0) - https://www.ietf.org/rfc/rfc2671.txt
+        RFC 2845 - Secret Key Transaction Authentication for DNS (TSIG) -https://www.ietf.org/rfc/rfc2845.txt
+        RFC 2930 - Secret Key Establishment for DNS (TKEY RR) - https://tools.ietf.org/html/rfc2930
+        RFC 4635 -  HMAC SHA TSIG Algorithm Identifiers -  https://tools.ietf.org/html/rfc4635
+        RFC 6895 - Domain Name System (DNS) IANA Considerations - https://tools.ietf.org/html/rfc6195
+
+        Additional reference: http://www.networksorcery.com/enp/protocol/dns.htm
 
 
         """
@@ -300,16 +327,16 @@ class Pcap:
         pdns["qr"] = dns.qr  # A one bit field that specifies whether this message is a query (0), or a response (1).
         pdns["opcode"] = dns.opcode  # kind of query in this message. 0=Standard Query, 1=Inverse Query, 2=Server status and 3-15 reserved for future use
         # AA, TC, RD, RA are flags of DNS package one or more tags are verificate
-        pdns["aa"] = dns.aa  # Authoritative Answer - valid in responses
+        pdns["aa"] = dns.aa  # Authoritative Answer - valid in responses. Possible values:0=not 1=is
         pdns["tc"] = ''  # Truncation TODO: Truncation is not implemented on DPKT to return;
-        pdns["rd"] = dns.rd  # Recursion Desired
-        pdns["ra"] = dns.ra  # Recursion Available
+        pdns["rd"] = dns.rd  # Recursion Desired. Possible values:0=not 1=is
+        pdns["ra"] = dns.ra  # Recursion Available. Possible values:0=not 1=is
         pdns["z"] = dns.zero  # Reserved for future use. Must be zero
-        pdns["rcode"] = dns.rcode  # Response Code. 0=No Error, 1=Format error, 2=Server failure, 3=Name Error, 4=Not implemented, 5=Refused
+        pdns["rcode"] = dns.rcode  # Response Code. 0=No Error, 1=Format error, 2=Server failure, 3=Name Error, 4=Not implemented, 5=Refused. # TODO: Incluir os RCODE descritos nas RFCs 2136, 2671, 2845, 2930, 4635 na biblioteca DPKT
         pdns["qdcount"] = len(dns.qd)  # number of entries in the question section
         pdns["ancount"] = len(dns.an)  # number of number of resource records in the answer section
         pdns["nscount"] = len(dns.ns)  # number of name server resource records in the authority records section
-        pdns["arcount"] = len(dns.ar)  #  number of resource records in the additional records section
+        pdns["arcount"] = len(dns.ar)  # number of resource records in the additional records section
 
         # DNS query parsing
         #
@@ -330,44 +357,68 @@ class Pcap:
 
         query = {}
 
+
         if dns.rcode == dpkt.dns.DNS_RCODE_NOERR or \
                         dns.qr == dpkt.dns.DNS_R or \
                         dns.opcode == dpkt.dns.DNS_QUERY or True:
             # DNS question.
-            try:
-                q_name = dns.qd[0].name  # QNAME
-                q_type = dns.qd[0].type  # QTYPE
-                q_class = dns.qd[0].cls  # QCLASS
-            except IndexError:
-                return False
+            # TODO: revisar implementação
+            for question in dns.qd:
+                try:
+                    q_name = dns.qd[0].name  # QNAME
+                    q_type = dns.qd[0].type  # QTYPE
+                    q_class = dns.qd[0].cls  # QCLASS
+                except IndexError:
+                    return False
+                query["questions"]=[]
 
-            query["request"] = q_name
-            if q_type == dpkt.dns.DNS_A:
-                query["type"] = "A"
-            if q_type == dpkt.dns.DNS_AAAA:
-                query["type"] = "AAAA"
-            elif q_type == dpkt.dns.DNS_CNAME:
-                query["type"] = "CNAME"
-            elif q_type == dpkt.dns.DNS_MX:
-                query["type"] = "MX"
-            elif q_type == dpkt.dns.DNS_PTR:
-                query["type"] = "PTR"
-            elif q_type == dpkt.dns.DNS_NS:
-                query["type"] = "NS"
-            elif q_type == dpkt.dns.DNS_SOA:
-                query["type"] = "SOA"
-            elif q_type == dpkt.dns.DNS_HINFO:
-                query["type"] = "HINFO"
-            elif q_type == dpkt.dns.DNS_TXT:
-                query["type"] = "TXT"
-            elif q_type == dpkt.dns.DNS_SRV:
-                query["type"] = "SRV"
+                query["request"] = q_name
+                if q_type == dpkt.dns.DNS_A:
+                    query["type"] = "A"
+                if q_type == dpkt.dns.DNS_AAAA:
+                    query["type"] = "AAAA"
+                elif q_type == dpkt.dns.DNS_CNAME:
+                    query["type"] = "CNAME"
+                elif q_type == dpkt.dns.DNS_MX:
+                    query["type"] = "MX"
+                elif q_type == dpkt.dns.DNS_PTR:
+                    query["type"] = "PTR"
+                elif q_type == dpkt.dns.DNS_NS:
+                    query["type"] = "NS"
+                elif q_type == dpkt.dns.DNS_SOA:
+                    query["type"] = "SOA"
+                elif q_type == dpkt.dns.DNS_HINFO:
+                    query["type"] = "HINFO"
+                elif q_type == dpkt.dns.DNS_TXT:
+                    query["type"] = "TXT"
+                elif q_type == dpkt.dns.DNS_SRV:
+                    query["type"] = "SRV"
 
-            pdns["request"] = q_name  # Name
-            pdns["type"] = query["type"]  # Type
-            pdns["class"] = q_class  # Class
+                #Append query encountered into array index Questions
+                query["questions"].append(question)
+
+            pdns["questions"].append(query["questions"])  # append questions encountered in DNS package
+
 
             # DNS answer.
+            # Datagram
+            #                                1  1  1  1  1  1
+            # 0   1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+            #/                  NAME                        /|
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+            #|                  TYPE                         |
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+            #|                  CLASS                        |
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+            #|                  TTL                          |
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+            #|                  RDLENGTH                     |
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+            #/                  RDATA /                      |
+            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+
             query["answers"] = []
             for answer in dns.an:
                 ans = {}
@@ -399,6 +450,8 @@ class Pcap:
                 elif answer.type == dpkt.dns.DNS_SOA:
                     ans["type"] = "SOA"
                     #Parser SOA
+                    # Praticamente gera um dicionário de dados da resposta do tipo SOA
+                    # O primeiro registro de recurso de qualquer arquivo de zona de Domain Name System (DNS) deve ser um registro de recurso início de autoridade (SOA). O registro de recurso SOA indica que este servidor de nome DNS é a melhor fonte de informações para os dados nesse domínio DNS.
                     #Primary NS 	    Variable length. The name of the Primary Master for the domain. May be a label, pointer or any combination.
                     #Admin MB 	        Variable length. The administrator's mailbox. May be a label, pointer or any combination.
                     #Serial Number 	    Unsigned 32-bit integer.
@@ -422,7 +475,8 @@ class Pcap:
 
                 # TODO: add srv handling
                 query["answers"].append(ans)
-                pdns["answers"].append(ans)  # append answers encountered in DNS package
+
+            pdns["answers"].append(query["answers"])  # append answers encountered in DNS package
 
             self._add_domain(query["request"])
 
