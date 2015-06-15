@@ -30,5 +30,3 @@ venv
 modules/signatures/*
 #ignore yara modules
 data/yara/malware-families/*
-#ignoring analysis
-storage/*
