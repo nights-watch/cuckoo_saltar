@@ -73,9 +73,8 @@ class Pcap:
         self.irc_requests = []
         # Dictionary containing all the results of this processing.
         self.results = {}
-        # List of packages and the parser of this packages. Protocols parsing: IP, TCP, UDP, DNS, HTTP, SMTP and IRC
-        self.packet = []
-        self.packages_parser_flow = {}
+        # Parser of packages
+        self.parser=[]
 
     def _dns_gethostbyname(self, name):
         """Get host by name wrapper.
@@ -88,24 +87,24 @@ class Pcap:
             ip = ""
         return ip
 
-    def _tcp_flags(self, flags):
+    def _tcp_flags(self, flag):
         """Identify flag TCP of a packet."""
         flagreturn = ''
-        if flags & dpkt.tcp.TH_FYN:
+        if flag == dpkt.tcp.TH_FYN:
             flagreturn = "FIN"
-        elif flags & dpkt.tcp.TH_SYN:
+        elif flag == dpkt.tcp.TH_SYN:
             flagreturn = "SYN"
-        elif flags & dpkt.tcp.TH_RST:
+        elif flag == dpkt.tcp.TH_RST:
             flagreturn = "RST"
-        elif flags & dpkt.tcp.TH_PUSH:
+        elif flag == dpkt.tcp.TH_PUSH:
             flagreturn = "PUS"
-        elif flags & dpkt.tcp.TH_ACK:
+        elif flag == dpkt.tcp.TH_ACK:
             flagreturn = "ACK"
-        elif flags & dpkt.tcp.TH_URG:
+        elif flag == dpkt.tcp.TH_URG:
             flagreturn = "URG"
-        elif flags & dpkt.tcp.TH_ECE:
+        elif flag == dpkt.tcp.TH_ECE:
             flagreturn = "ECE"
-        elif flags & dpkt.tcp.TH_CWR:
+        elif flag == dpkt.tcp.TH_CWR:
             flagreturn = "CWR"
         else:
             flagreturn = "UNK"
@@ -189,19 +188,16 @@ class Pcap:
         """
         # HTTP
         if self._check_http(data):
-            self._add_http(data, conn["dport"])
+            return self._add_http(data, conn["dport"])
         # SMTP.
         elif conn["dport"] == 25:
-            self._reassemble_smtp(conn, data)
+            return self._reassemble_smtp(conn, data)
         # IRC.
         elif conn["dport"] != 21 and self._check_irc(data):
-            self._add_irc(data)
-        # Another protocol level 7 unknown
+            return self._add_irc(data)
+        # Another protocol unknown
         else:
-            self._add_unknow_indication()
-
-    def _add_unknow_indication(self, ):
-        """Indicate protocol unknown not parsed yet"""
+            return "unknown protocol"
 
     def _udp_dissect(self, conn, data):
         """Runs all UDP dissectors.
@@ -222,7 +218,7 @@ class Pcap:
         # port 53 (decimal).,
         if conn["dport"] == 53 or conn["sport"] == 53 or conn["dport"] == 5353 or conn["sport"] == 5353:
             if self._check_dns(data):
-                self._add_dns(data)
+                return self._add_dns(data)
 
     def _check_icmp(self, icmp_data):
         """Checks for ICMP traffic.
@@ -268,6 +264,7 @@ class Pcap:
             icmp["data"] = entry["data"]  # Data
 
             self.icmp_requests.append(entry)
+
             return icmp
 
     def _check_dns(self, udpdata):
@@ -296,8 +293,38 @@ class Pcap:
         |                       Total Authority RRs 	                |                      Total Additional RRs                     |
         |-------------------------------------------------------------------------------------------------------------------------------|
         |                                                       Questions [] :::                                                        |
+        |                                        # Question section format                                                              |
+        |                                        #                                1  1  1  1  1  1                                      |
+        |                                        #  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5                                      |
+        |                                        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                    |
+        |                                        # |                                               |                                    |
+        |                                        # /                     QNAME                     /                                    |
+        |                                        # /                                               /                                    |
+        |                                        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                    |
+        |                                        # |                     QTYPE                     |                                    |
+        |                                        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                    |
+        |                                        # |                     QCLASS                    |                                    |
+        |                                        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                    |
+        |                                                                                                                               |
         |-------------------------------------------------------------------------------------------------------------------------------|
         |                                                       Answer RRs [] :::                                                       |
+        |                                         DNS answer - can be repeat n times                                                    |
+        |                                         Answers section format                                                                |
+        |                                                                        1  1  1  1  1  1                                       |
+        |                                         0   1  2  3  4  5  6  7  8  9  0  1  2  3  4  5                                       |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                      |
+        |                                        /                  NAME                        /|                                      |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                      |
+        |                                        |                  TYPE                         |                                      |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                      |
+        |                                        |                  CLASS                        |                                      |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                      |
+        |                                        |                  TTL                          |                                      |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                      |
+        |                                        |                  RDLENGTH                     |                                      |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|                                      |
+        |                                        /                  RDATA /                      |                                      |
+        |                                        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+                                      |
         |-------------------------------------------------------------------------------------------------------------------------------|
         |                                                      Authority RRs [] :::                                                     |
         |-------------------------------------------------------------------------------------------------------------------------------|
@@ -305,11 +332,12 @@ class Pcap:
         |-------------------------------------------------------------------------------------------------------------------------------|
 
         RFC References for project SALTAR
-        RFC 1035 - DOMAIN NAMES - IMPLEMENTATION AND SPECIFICATION - https://www.ietf.org/rfc/rfc1035.txt
-        RFC 2136 - Dynamic Updates in the Domain Name System (DNS UPDATE) - https://www.ietf.org/rfc/rfc2136.txt
+        RFC 1035 - DOMAIN NAMES - IMPLEMENTATION AND SPECIFICATION - https://www.ietf.org/rfc/rfc1035
+        RFC 2136 - Dynamic Updates in the Domain Name System (DNS UPDATE) - https://www.ietf.org/rfc/rfc2136
         RFC 2671 - Extension Mechanisms for DNS (EDNS0) - https://www.ietf.org/rfc/rfc2671.txt
-        RFC 2845 - Secret Key Transaction Authentication for DNS (TSIG) -https://www.ietf.org/rfc/rfc2845.txt
+        RFC 2845 - Secret Key Transaction Authentication for DNS (TSIG) -https://www.ietf.org/rfc/rfc2845
         RFC 2930 - Secret Key Establishment for DNS (TKEY RR) - https://tools.ietf.org/html/rfc2930
+        RFC 3596 - NS Extensions to Support IP Version 6 - https://tools.ietf.org/html//rfc3596
         RFC 4635 -  HMAC SHA TSIG Algorithm Identifiers -  https://tools.ietf.org/html/rfc4635
         RFC 6895 - Domain Name System (DNS) IANA Considerations - https://tools.ietf.org/html/rfc6195
 
@@ -318,12 +346,12 @@ class Pcap:
 
         """
         dns = dpkt.dns.DNS(udpdata)
-        # RFC 1035
+
         pdns = {}
 
         # Parser of header section of procotol DNS. More information available in topic  4.1.1 of RFC 1035
 
-        pdns["id"] = ''  #A 16 bit identifier assigned by the program that generates any kind of query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries TODO: Id not implemented on DPKT
+        pdns["id"] = ''  # A 16 bit identifier assigned by the program that generates any kind of query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries TODO: Id not implemented on DPKT
         pdns["qr"] = dns.qr  # A one bit field that specifies whether this message is a query (0), or a response (1).
         pdns["opcode"] = dns.opcode  # kind of query in this message. 0=Standard Query, 1=Inverse Query, 2=Server status and 3-15 reserved for future use
         # AA, TC, RD, RA are flags of DNS package one or more tags are verificate
@@ -339,24 +367,7 @@ class Pcap:
         pdns["arcount"] = len(dns.ar)  # number of resource records in the additional records section
 
         # DNS query parsing
-        #
-        #
-        #
-        # Question section format
-        #                                1  1  1  1  1  1
-        #  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        # |                                               |
-        # /                     QNAME                     /
-        # /                                               /
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        # |                     QTYPE                     |
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        # |                     QCLASS                    |
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
         query = {}
-
 
         if dns.rcode == dpkt.dns.DNS_RCODE_NOERR or \
                         dns.qr == dpkt.dns.DNS_R or \
@@ -370,7 +381,7 @@ class Pcap:
                     q_class = dns.qd[0].cls  # QCLASS
                 except IndexError:
                     return False
-                query["questions"]=[]
+                query["questions"] = []
 
                 query["request"] = q_name
                 if q_type == dpkt.dns.DNS_A:
@@ -394,41 +405,24 @@ class Pcap:
                 elif q_type == dpkt.dns.DNS_SRV:
                     query["type"] = "SRV"
 
-                #Append query encountered into array index Questions
+                # Append query encountered into array index Questions
                 query["questions"].append(question)
 
             pdns["questions"].append(query["questions"])  # append questions encountered in DNS package
 
-
-            # DNS answer.
-            # Datagram
-            #                                1  1  1  1  1  1
-            # 0   1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-            #/                  NAME                        /|
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-            #|                  TYPE                         |
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-            #|                  CLASS                        |
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-            #|                  TTL                          |
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-            #|                  RDLENGTH                     |
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
-            #/                  RDATA /                      |
-            #+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
-
+            #  Dns answers
             query["answers"] = []
             for answer in dns.an:
                 ans = {}
                 if answer.type == dpkt.dns.DNS_A:
+                    # Topic 3.3.1 of RFC 1035
                     ans["type"] = "A"
                     try:
                         ans["data"] = socket.inet_ntoa(answer.rdata)
                     except socket.error:
                         continue
                 elif answer.type == dpkt.dns.DNS_AAAA:
+                    #Reference of Topic 3.3.1 of RFC 1035. The same, but for IPv6
                     ans["type"] = "AAAA"
                     try:
                         ans["data"] = socket.inet_ntop(socket.AF_INET6,
@@ -436,29 +430,33 @@ class Pcap:
                     except (socket.error, ValueError):
                         continue
                 elif answer.type == dpkt.dns.DNS_CNAME:
+                    #Topic 3.3.1 of RFC 1035
                     ans["type"] = "CNAME"
                     ans["data"] = answer.cname
                 elif answer.type == dpkt.dns.DNS_MX:
+                    #Topic 3.3.9 of RFC 1035
                     ans["type"] = "MX"
                     ans["data"] = answer.mxname
                 elif answer.type == dpkt.dns.DNS_PTR:
+                    #Topic 3.3.12 of RFC 1035
                     ans["type"] = "PTR"
                     ans["data"] = answer.ptrname
                 elif answer.type == dpkt.dns.DNS_NS:
+                    # Topic 3.3.11 of RFC 1035
                     ans["type"] = "NS"
                     ans["data"] = answer.nsname
                 elif answer.type == dpkt.dns.DNS_SOA:
+                    # Topic 3.3.13 of RFC 1035
                     ans["type"] = "SOA"
-                    #Parser SOA
+                    # Parser SOA
                     # Praticamente gera um dicionário de dados da resposta do tipo SOA
-                    # O primeiro registro de recurso de qualquer arquivo de zona de Domain Name System (DNS) deve ser um registro de recurso início de autoridade (SOA). O registro de recurso SOA indica que este servidor de nome DNS é a melhor fonte de informações para os dados nesse domínio DNS.
-                    #Primary NS 	    Variable length. The name of the Primary Master for the domain. May be a label, pointer or any combination.
-                    #Admin MB 	        Variable length. The administrator's mailbox. May be a label, pointer or any combination.
-                    #Serial Number 	    Unsigned 32-bit integer.
-                    #Refresh interval 	Unsigned 32-bit integer.
-                    #Retry Interval 	Unsigned 32-bit integer.
-                    #Expiration Limit 	Unsigned 32-bit integer.
-                    #Minimum TTL    	Unsigned 32-bit integer.
+                    # Primary NS 	    Variable length. The name of the Primary Master for the domain. May be a label, pointer or any combination.
+                    # Admin MB 	        Variable length. The administrator's mailbox. May be a label, pointer or any combination.
+                    # Serial Number 	Unsigned 32-bit integer.
+                    # Refresh interval 	Unsigned 32-bit integer.
+                    # Retry Interval 	Unsigned 32-bit integer.
+                    # Expiration Limit 	Unsigned 32-bit integer.
+                    # Minimum TTL    	Unsigned 32-bit integer.
                     ans["data"] = ",".join([answer.mname,
                                             answer.rname,
                                             str(answer.serial),
@@ -467,9 +465,11 @@ class Pcap:
                                             str(answer.expire),
                                             str(answer.minimum)])
                 elif answer.type == dpkt.dns.DNS_HINFO:
+                    #Topic 3.3.2 of RFC 1035
                     ans["type"] = "HINFO"
                     ans["data"] = " ".join(answer.text)
                 elif answer.type == dpkt.dns.DNS_TXT:
+                    #Topic 3.3.14 of RFC 1035
                     ans["type"] = "TXT"
                     ans["data"] = " ".join(answer.text)
 
@@ -478,8 +478,10 @@ class Pcap:
 
             pdns["answers"].append(query["answers"])  # append answers encountered in DNS package
 
+            #Add te domains uniques in a array
             self._add_domain(query["request"])
 
+            #Format a tuple of requisition DNS.For use of default report Cuckoo
             reqtuple = (query["type"], query["request"])
             if not reqtuple in self.dns_requests:
                 self.dns_requests[reqtuple] = query
@@ -487,7 +489,7 @@ class Pcap:
                 new_answers = set((i["type"], i["data"]) for i in query["answers"]) - self.dns_answers
                 self.dns_requests[reqtuple]["answers"] += [dict(type=i[0], data=i[1]) for i in new_answers]
 
-        return True
+        return pdns
 
     def _add_domain(self, domain):
         """Add a domain to unique list.
@@ -590,6 +592,7 @@ class Pcap:
 
     def _process_smtp(self):
         """Process SMTP flow."""
+        #RFC 2821
         for conn, data in self.smtp_flow.iteritems():
             # Detect new SMTP flow.
             if data.startswith("EHLO") or data.startswith("HELO"):
@@ -598,6 +601,7 @@ class Pcap:
     def _check_irc(self, tcpdata):
         """
         Checks for IRC traffic.
+        Identify
         @param tcpdata: tcp data flow
         """
         try:
@@ -609,11 +613,14 @@ class Pcap:
 
     def _add_irc(self, tcpdata):
         """
+        RFC 1459 - Internet Relay Chat Protocol - https://tools.ietf.org/html/rfc1459
+
         Adds an IRC communication.
         @param tcpdata: TCP data in flow
         @param dport: destination port
         """
-
+        pirc={}
+        irc_request=[]
         try:
             reqc = ircMessage()
             reqs = ircMessage()
@@ -621,10 +628,11 @@ class Pcap:
             self.irc_requests = self.irc_requests + \
                                 reqc.getClientMessages(tcpdata) + \
                                 reqs.getServerMessagesFilter(tcpdata, filters_sc)
+            irc_request=self.irc_requests
         except Exception:
-            return False
+            return "Can't retrieve IRC messages from TCP data"
 
-        return True
+        return irc_request
 
     def run(self):
         """Process PCAP.
@@ -671,6 +679,7 @@ class Pcap:
                 ip = iplayer_from_raw(buf, pcap.datalink())
 
                 connection = {}
+                package={}
                 pip = {}
                 ptcp = {}
                 pudp = {}
@@ -709,8 +718,6 @@ class Pcap:
                     offset = file.tell()
                     continue
 
-                # Populate package hierarchy to create a flow tuple
-
                 self._add_hosts(connection)
                 # if payload of IP is a package TCP
                 if ip.p == dpkt.ip.IP_PROTO_TCP:
@@ -735,7 +742,7 @@ class Pcap:
                         ptcp["urp"] = tcp.urp  # Urgent Pointer
                         ptcp["options"] = tcp.opts  # Options
                         ptcp["padding"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
-                        self._tcp_dissect(connection, tcp.data)  # Verify payload of package TCP
+                        ptcp["payload"] = self._tcp_dissect(connection, tcp.data)  # Verify payload of package TCP
 
                         # Populate list of TCP Connections, default of Cuckoo sandbox
                         src, sport, dst, dport = (
@@ -759,7 +766,7 @@ class Pcap:
                         pudp["dport"] = udp.dport  # Destination port
                         pudp["ulen"] = udp.ulen  # Length
                         pudp["usum"] = udp.sum  # Checksum
-                        self._udp_dissect(connection, udp.data)  # Data Octets - Payload
+                        pudp["payload"]=self._udp_dissect(connection, udp.data)  # Data Octets - Payload
 
                         # Populate list of UDP Connections, default of Cuckoo sandbox
                         src, sport, dst, dport = (
@@ -800,7 +807,7 @@ class Pcap:
         self.results["dns"] = self.dns_requests.values()
         self.results["smtp"] = self.smtp_requests
         self.results["irc"] = self.irc_requests
-        self.results["pcap_parser"] = []
+        self.results["pcap_parser"] = [self.parser]
 
         return self.results
 
@@ -1013,4 +1020,3 @@ def package_json(package):
      Create a hierarchical package i
 format to json
     """
-
