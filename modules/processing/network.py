@@ -102,7 +102,8 @@ class Pcap:
         first_ts = None
         for ts, buf in pcap:
 
-            if not first_ts: first_ts = ts
+            if not first_ts:
+                first_ts = ts
             try:
                 ip = iplayer_from_raw(buf, pcap.datalink())
 
@@ -150,6 +151,7 @@ class Pcap:
                 # if payload of IP is a package TCP
                 if ip.p == dpkt.ip.IP_PROTO_TCP:
                     tcp = ip.data
+
                     if not isinstance(tcp, dpkt.tcp.TCP):
                         tcp = dpkt.tcp.TCP(tcp)
                         # if exists data of type TCP realize parser
@@ -179,6 +181,7 @@ class Pcap:
                                 src, sport, dst, dport) in self.tcp.tcp_connections_seen):
                             self.tcp.tcp_connections.append((src, sport, dst, dport, offset, ts - first_ts))
                             self.tcp.tcp_connections_seen.add((src, sport, dst, dport))
+
                 # if payload of IP is a package UDP
                 elif ip.p == dpkt.ip.IP_PROTO_UDP:
                     udp = ip.data
@@ -194,7 +197,7 @@ class Pcap:
                         pudp["dport"] = udp.dport  # Destination port
                         pudp["ulen"] = udp.ulen  # Length
                         pudp["usum"] = udp.sum  # Checksum
-                        pudp["payload"]=self.udp.udp_dissect(connection, udp.data, self.dns)  # Data Octets - Payload
+                        pudp["payload"] = self.udp.udp_dissect(connection, udp.data, self.dns)  # Data Octets - Payload
 
                         # Populate list of UDP Connections, default of Cuckoo sandbox
                         src, sport, dst, dport = (
