@@ -62,7 +62,76 @@ class Pcap:
         # Parser of packages
         self.parser = []
 
+    def readPcap(self):
+        """Process PCAP.
+        @return: dict with network analysis data.
+        """
+        log = logging.getLogger("Processing.Pcap")
+
+        if not IS_DPKT:
+            log.error("Python DPKT is not installed, aborting PCAP analysis.")
+            return None
+
+        if not os.path.exists(self.filepath):
+            log.warning("The PCAP file does not exist at path \"%s\".",
+                        self.filepath)
+            return None
+
+        if os.path.getsize(self.filepath) == 0:
+            log.error("The PCAP file at path \"%s\" is empty." % self.filepath)
+            return None
+
+        try:
+            with open(self.filepath, "rb") as file:
+                pcap = dpkt.pcap.Reader(file)
+                return pcap
+        except dpkt.dpkt.NeedData:
+            log.error("Unable to read PCAP file at path \"%s\".",
+                      self.filepath)
+        except (IOError, OSError):
+            log.error("Unable to open %s" % self.filepath)
+        except ValueError:
+            log.error("Unable to read PCAP file at path \"%s\". File is "
+                      "corrupted or wrong format." % self.filepath)
+        return None
+
     def run(self):
+        log = logging.getLogger("Processing.Pcap")
+
+        result = {}
+        pcap = self.readPcap()
+
+        if pcap is None:
+            return {}
+        first_ts = None
+
+        pcapLine = 0
+
+        for ts, buf in pcap:
+            pcapLine += 1
+            try:
+                ip = iplayer_from_raw(buf, pcap.datalink())
+
+                if isinstance(ip, dpkt.ip.IP):  # RFC 791
+                    result[pcapLine] = self.ip.dissect(ip)
+                elif isinstance(ip, dpkt.ip6.IP6):
+                    result[pcapLine] = self.ipV6.dissect(ip)
+                else:
+                    continue
+
+            except AttributeError:
+                continue
+            except dpkt.dpkt.NeedData:
+                continue
+            except Exception as e:
+                log.exception("Failed to process packet: %s", e)
+
+        saida = self.run2();
+        self.results["parser"] = result
+
+        return self.results
+
+    def run2(self):
         """Process PCAP.
         @return: dict with network analysis data.
         """
@@ -174,13 +243,16 @@ class Pcap:
                         ptcp["padding"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
                         ptcp["payload"] = self.tcp.tcp_dissect(connection, tcp.data)  # Verify payload of package TCP
 
-                        # Populate list of TCP Connections, default of Cuckoo sandbox
-                        src, sport, dst, dport = (
-                            connection["src"], connection["sport"], connection["dst"], connection["dport"])
-                        if not ((dst, dport, src, sport) in self.tcp.tcp_connections_seen or (
-                                src, sport, dst, dport) in self.tcp.tcp_connections_seen):
-                            self.tcp.tcp_connections.append((src, sport, dst, dport, offset, ts - first_ts))
-                            self.tcp.tcp_connections_seen.add((src, sport, dst, dport))
+                        # # Populate list of TCP Connections, default of Cuckoo sandbox
+                        # src, sport, dst, dport = (
+                        #     connection["src"], connection["sport"], connection["dst"], connection["dport"])
+                        # if not ((dst, dport, src, sport) in self.tcp.tcp_connections_seen or (
+                        #         src, sport, dst, dport) in self.tcp.tcp_connections_seen):
+                        #   self.tcp.tcp_connections.append((src, sport, dst, dport, offset, ts - first_ts))
+                        self.tcp.tcp_connections.append(ptcp)
+                        ##    self.tcp.tcp_connections_seen.add((src, sport, dst, dport))
+
+
 
                 # if payload of IP is a package UDP
                 elif ip.p == dpkt.ip.IP_PROTO_UDP:
@@ -232,6 +304,7 @@ class Pcap:
 
         self.results["hosts"] = self.ip.unique_hosts
         self.results["domains"] = self.dns.unique_domains
+        #self.results["tcp"] = self.tcp.tcp_connections
         self.results["tcp"] = [conn_from_flowtuple(i) for i in self.tcp.tcp_connections]
         self.results["udp"] = [conn_from_flowtuple(i) for i in self.udp.udp_connections]
         self.results["icmp"] = self.icmp.icmp_requests
@@ -239,10 +312,10 @@ class Pcap:
         self.results["dns"] = self.dns.dns_requests
         self.results["smtp"] = self.smtp.smtp_requests
         self.results["irc"] = self.irc.irc_requests
+
         #self.results["pcap_parser"] = [self.parser]
 
         return self.results
-
 
 class NetworkAnalysis(Processing):
     """Network analysis."""
