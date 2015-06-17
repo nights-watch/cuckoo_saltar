@@ -17,7 +17,8 @@ class Dns:
     #TODO create singleton
     def __init__(self):
         # List containing all DNS requests.
-        self.dns_requests = {}
+        self.dns_requests = []
+        self.pdns = {}
         self.dns_answers = set()
         # List of unique domains.
         self.unique_domains = []
@@ -135,26 +136,26 @@ class Dns:
         """
         dns = dpkt.dns.DNS(udpdata)
 
-        pdns = {}
+        self.pdns = {}
 
         # Parser of header section of procotol DNS. More information available in topic  4.1.1 of RFC 1035
 
-        pdns["id"] = ''  # A 16 bit identifier assigned by the program that generates any kind of query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries TODO: Id not implemented on DPKT
-        pdns["qr"] = dns.qr  # A one bit field that specifies whether this message is a query (0), or a response (1).
-        pdns["opcode"] = dns.opcode  # kind of query in this message. 0=Standard Query, 1=Inverse Query, 2=Server status and 3-15 reserved for future use
+        self.pdns["id"] = ''  # A 16 bit identifier assigned by the program that generates any kind of query.  This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries TODO: Id not implemented on DPKT
+        self.pdns["qr"] = dns.qr  # A one bit field that specifies whether this message is a query (0), or a response (1).
+        self.pdns["opcode"] = dns.opcode  # kind of query in this message. 0=Standard Query, 1=Inverse Query, 2=Server status and 3-15 reserved for future use
         # AA, TC, RD, RA are flags of DNS package one or more tags are verificate
-        pdns["aa"] = dns.aa  # Authoritative Answer - valid in responses. Possible values:0=not 1=is
-        pdns["tc"] = ''  # Truncation TODO: Truncation is not implemented on DPKT to return;
-        pdns["rd"] = dns.rd  # Recursion Desired. Possible values:0=not 1=is
-        pdns["ra"] = dns.ra  # Recursion Available. Possible values:0=not 1=is
-        pdns["z"] = dns.zero  # Reserved for future use. Must be zero
-        pdns["rcode"] = dns.rcode  # Response Code. 0=No Error, 1=Format error, 2=Server failure, 3=Name Error, 4=Not implemented, 5=Refused. # TODO: Incluir os RCODE descritos nas RFCs 2136, 2671, 2845, 2930, 4635 na biblioteca DPKT
-        pdns["qdcount"] = len(dns.qd)  # number of entries in the question section
-        pdns["ancount"] = len(dns.an)  # number of number of resource records in the answer section
-        pdns["nscount"] = len(dns.ns)  # number of name server resource records in the authority records section
-        pdns["arcount"] = len(dns.ar)  # number of resource records in the additional records section
-        pdns["questions"] = []
-        pdns["answers"] = []
+        self.pdns["aa"] = dns.aa  # Authoritative Answer - valid in responses. Possible values:0=not 1=is
+        self.pdns["tc"] = ''  # Truncation TODO: Truncation is not implemented on DPKT to return;
+        self.pdns["rd"] = dns.rd  # Recursion Desired. Possible values:0=not 1=is
+        self.pdns["ra"] = dns.ra  # Recursion Available. Possible values:0=not 1=is
+        self.pdns["z"] = dns.zero  # Reserved for future use. Must be zero
+        self.pdns["rcode"] = dns.rcode  # Response Code. 0=No Error, 1=Format error, 2=Server failure, 3=Name Error, 4=Not implemented, 5=Refused. # TODO: Incluir os RCODE descritos nas RFCs 2136, 2671, 2845, 2930, 4635 na biblioteca DPKT
+        self.pdns["qdcount"] = len(dns.qd)  # number of entries in the question section
+        self.pdns["ancount"] = len(dns.an)  # number of number of resource records in the answer section
+        self.pdns["nscount"] = len(dns.ns)  # number of name server resource records in the authority records section
+        self.pdns["arcount"] = len(dns.ar)  # number of resource records in the additional records section
+        self.pdns["questions"] = []
+        self.pdns["answers"] = []
         # DNS query parsing
         query = {}
 
@@ -164,41 +165,44 @@ class Dns:
             # DNS question.
             # TODO: revise implementation
 
+            query["questions"] = []
+
             for question in dns.qd:
                 try:
-                    q_name = dns.qd[0].name  # QNAME
-                    q_type = dns.qd[0].type  # QTYPE
-                    q_class = dns.qd[0].cls  # QCLASS
+                    q_name = question.name  # QNAME
+                    q_type = question.type  # QTYPE
+                    q_class = question.cls  # QCLASS
                 except IndexError:
                     return False
-                query["questions"] = []
 
-                query["request"] = q_name
+                qst={}
+
+                qst["request"] = q_name
                 if q_type == dpkt.dns.DNS_A:
-                    query["type"] = "A"
+                    qst["type"] = "A"
                 if q_type == dpkt.dns.DNS_AAAA:
-                    query["type"] = "AAAA"
+                    qst["type"] = "AAAA"
                 elif q_type == dpkt.dns.DNS_CNAME:
-                    query["type"] = "CNAME"
+                    qst["type"] = "CNAME"
                 elif q_type == dpkt.dns.DNS_MX:
-                    query["type"] = "MX"
+                    qst["type"] = "MX"
                 elif q_type == dpkt.dns.DNS_PTR:
-                    query["type"] = "PTR"
+                    qst["type"] = "PTR"
                 elif q_type == dpkt.dns.DNS_NS:
-                    query["type"] = "NS"
+                    qst["type"] = "NS"
                 elif q_type == dpkt.dns.DNS_SOA:
-                    query["type"] = "SOA"
+                    qst["type"] = "SOA"
                 elif q_type == dpkt.dns.DNS_HINFO:
-                    query["type"] = "HINFO"
+                    qst["type"] = "HINFO"
                 elif q_type == dpkt.dns.DNS_TXT:
-                    query["type"] = "TXT"
+                    qst["type"] = "TXT"
                 elif q_type == dpkt.dns.DNS_SRV:
-                    query["type"] = "SRV"
+                    qst["type"] = "SRV"
 
                 # Append query encountered into array index Questions
-                query["questions"].append(question)
+                query["questions"].append(qst)
 
-            pdns["questions"].append(query["questions"])  # append questions encountered in DNS package
+            self.pdns["questions"] = query["questions"]  # append questions encountered in DNS package
 
             #  Dns answers
             query["answers"] = []
@@ -266,17 +270,23 @@ class Dns:
                 # TODO: add srv handling
                 query["answers"].append(ans)
 
-            pdns["answers"].append(query["answers"])  # append answers encountered in DNS package
+            self.pdns["answers"]=(query["answers"])  # append answers encountered in DNS package
 
             #Add te domains uniques in a array
-            self._add_domain(query["request"])
+            for question in query["questions"]:
+                self._add_domain(question["request"])
 
-            #Format a tuple of requisition DNS.For use of default report Cuckoo
-            reqtuple = (query["type"], query["request"])
-            if not reqtuple in self.dns_requests:
-                self.dns_requests[reqtuple] = query
-            else:
-                new_answers = set((i["type"], i["data"]) for i in query["answers"]) - self.dns_answers
-                self.dns_requests[reqtuple]["answers"] += [dict(type=i[0], data=i[1]) for i in new_answers]
+           # self.dns_requests=self.pdns
 
-        return pdns
+            # #Add te domains uniques in a array
+            # self._add_domain(query["request"])
+            #
+            # #Format a tuple of requisition DNS.For use of default report Cuckoo
+            # reqtuple = (query["type"], query["request"])
+            # if not reqtuple in self.dns_requests:
+            #     self.dns_requests[reqtuple] = query
+            # else:
+            #     new_answers = set((i["type"], i["data"]) for i in query["answers"]) - self.dns_answers
+            #     self.dns_requests[reqtuple]["answers"] += [dict(type=i[0], data=i[1]) for i in new_answers]
+        self.dns_requests.append(self.pdns)
+        return self.pdns
