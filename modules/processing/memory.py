@@ -43,6 +43,7 @@ class VolatilityAPI(object):
         """
         registry.PluginImporter()
         self.memdump = memdump
+        
         self.osprofile = osprofile
         self.config = None
         self.addr_space = None

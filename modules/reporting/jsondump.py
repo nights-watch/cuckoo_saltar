@@ -21,9 +21,24 @@ class JsonDump(Report):
         encoding = self.options.get("encoding", "utf-8")
 
         try:
+            
+            del results['behavior']
+            for tag in results['dropped']:
+                del tag['sha1']
+                del tag['crc32']
+                del tag['sha256']
+                del tag['path']
+                del tag['ssdeep']
+                del tag['sha512']
+                del tag['md5']
+                del tag['size']
+                
+            
+                    
             path = os.path.join(self.reports_path, "report.json")
             with codecs.open(path, "w", "utf-8") as report:
                 json.dump(results, report, sort_keys=False,
                           indent=int(indent), encoding=encoding)
+                       
         except (UnicodeError, TypeError, IOError) as e:
             raise CuckooReportError("Failed to generate JSON report: %s" % e)
