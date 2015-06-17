@@ -235,8 +235,8 @@ class Pcap:
         self.results["tcp"] = [conn_from_flowtuple(i) for i in self.tcp.tcp_connections]
         self.results["udp"] = [conn_from_flowtuple(i) for i in self.udp.udp_connections]
         self.results["icmp"] = self.icmp.icmp_requests
-        self.results["http"] = self.http.http_requests.values()
-        self.results["dns"] = self.dns.dns_requests.values()
+        self.results["http"] = self.http.http_requests
+        self.results["dns"] = self.dns.dns_requests
         self.results["smtp"] = self.smtp.smtp_requests
         self.results["irc"] = self.irc.irc_requests
         #self.results["pcap_parser"] = [self.parser]
