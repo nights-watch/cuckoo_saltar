@@ -23,6 +23,7 @@ class JsonDump(Report):
         try:
             
             del results['behavior']
+            del results['procmemory']
             for tag in results['dropped']:
                 del tag['sha1']
                 del tag['crc32']
