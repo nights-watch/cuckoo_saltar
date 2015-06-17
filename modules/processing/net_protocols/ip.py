@@ -81,4 +81,26 @@ class Ip:
         except:
             pass
 
+    def dissect(self, ip):
+        pip = {}
+
+        pip["ver"] = ip.v_hl
+        pip["headsize"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
+        pip["tos"] = ip.tos
+        pip["pktsize"] = ip.len
+        pip["id"] = ip.id
+        pip["flags"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
+        pip["offset"] = ip.off
+        pip["ttl"] = ip.ttl
+        pip["prot"] = ip.p
+        pip["ipsum"] = ip.sum
+        pip["opts"] = ''  # setted this way on dpkt.ip.IP
+        pip["src"] = socket.inet_ntoa(ip.src)
+        pip["dst"] = socket.inet_ntoa(ip.dst)
+        if tcp:
+            pip["payload"] = tcp.dissect()
+
+        return pip
+
+
 
