@@ -3,19 +3,11 @@
 # [Author] Hialo Muniz, Vinicius Franco
 #  Description:
 #
-#		   This script checks if there's any VMs running, checks its
-#          status then executes the main script of cuckoo sandbox, with
-#		   a list of malwares contained in MALWARES_PATH. This script also 
-#		   checks if there is any new signatures in cuckoo's and yara's
-#		   repositories.
 #
 # Dependency:
 #     Writing permissions in /opt. Commands:
 #          sudo chown $USER:root -R /opt/
 #          sudo chmod 755 -R /opt/
-#          * * * * * cd /opt/cuckoo_saltar/scripts; export DISPLAY:=0 && nohup ./script.sh &
-#     iptables script already executed in the machine, necessary for the 
-#     VM network to work.
 # ------------------------------------------------------------------
 
 TIME=$(date +"%T")
