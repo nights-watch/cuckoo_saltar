@@ -5,7 +5,6 @@ from lib.cuckoo.common.irc import ircMessage
 
 class Irc:
 
-    #TODO create singleton
     def __init__(self):
         # List containing all IRC requests.
         self.irc_requests = []

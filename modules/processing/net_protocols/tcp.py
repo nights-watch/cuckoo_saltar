@@ -1,5 +1,10 @@
 __author__ = 'targaryen'
 
+import http
+import smtp
+import irc
+import dns
+
 try:
     import dpkt
 
@@ -14,6 +19,10 @@ class Tcp:
         # List containing all TCP packets.
         self.tcp_connections = []
         self.tcp_connections_seen = set()
+        self.http = http.Http()
+        self.smtp = smtp.Smtp()
+        self.irc = irc.Irc()
+        self.dns = dns.Dns()
 
 
     def tcp_dissect(self, conn, data):
@@ -56,6 +65,5 @@ class Tcp:
             flagreturn = "UNK"
 
         return flagreturn
-
 
 

@@ -276,17 +276,6 @@ class Dns:
             for question in query["questions"]:
                 self._add_domain(question["request"])
 
-           # self.dns_requests=self.pdns
-
-            # #Add te domains uniques in a array
-            # self._add_domain(query["request"])
-            #
-            # #Format a tuple of requisition DNS.For use of default report Cuckoo
-            # reqtuple = (query["type"], query["request"])
-            # if not reqtuple in self.dns_requests:
-            #     self.dns_requests[reqtuple] = query
-            # else:
-            #     new_answers = set((i["type"], i["data"]) for i in query["answers"]) - self.dns_answers
-            #     self.dns_requests[reqtuple]["answers"] += [dict(type=i[0], data=i[1]) for i in new_answers]
         self.dns_requests.append(self.pdns)
         return self.pdns
+
