@@ -5,6 +5,7 @@
 import os
 import socket
 import logging
+from network_parser import ip as ipparser
 from net_protocols import smtp
 from net_protocols import http
 from net_protocols import irc
@@ -22,7 +23,6 @@ from lib.cuckoo.common.exceptions import CuckooProcessingError
 
 try:
     import dpkt
-
     IS_DPKT = True
 except ImportError:
     IS_DPKT = False
@@ -82,9 +82,9 @@ class Pcap:
             return None
 
         try:
-            with open(self.filepath, "rb") as file:
-                pcap = dpkt.pcap.Reader(file)
-                return pcap
+            file = open(self.filepath, "rb")
+            pcap = dpkt.pcap.Reader(file)
+            return pcap
         except dpkt.dpkt.NeedData:
             log.error("Unable to read PCAP file at path \"%s\".",
                       self.filepath)
@@ -95,43 +95,36 @@ class Pcap:
                       "corrupted or wrong format." % self.filepath)
         return None
 
-    def run(self):
+    def run2(self):
         log = logging.getLogger("Processing.Pcap")
-
         result = {}
         pcap = self.readPcap()
 
         if pcap is None:
             return {}
-        first_ts = None
-
         pcapLine = 0
 
         for ts, buf in pcap:
             pcapLine += 1
+            ippars = ipparser.Ip()
             try:
-                ip = iplayer_from_raw(buf, pcap.datalink())
-
-                if isinstance(ip, dpkt.ip.IP):  # RFC 791
-                    result[pcapLine] = self.ip.dissect(ip)
-                elif isinstance(ip, dpkt.ip6.IP6):
-                    result[pcapLine] = self.ipV6.dissect(ip)
+                _ip = iplayer_from_raw(buf, pcap.datalink())
+                if ippars.checkv4(_ip) or ippars.checkv6(_ip):  # RFC 791
+                    result[pcapLine] = ippars.dissect(_ip)
                 else:
+                    result[pcapLine] = "unknown protocol on layer 3"
                     continue
-
-            except AttributeError:
-                continue
+            # except AttributeError:
+            #     print "atribute error"
+            #     continue
             except dpkt.dpkt.NeedData:
                 continue
             except Exception as e:
                 log.exception("Failed to process packet: %s", e)
 
-        saida = self.run2();
-        self.results["parser"] = result
+        return result
 
-        return self.results
-
-    def run2(self):
+    def run(self):
         """Process PCAP.
         @return: dict with network analysis data.
         """
@@ -313,7 +306,7 @@ class Pcap:
         self.results["smtp"] = self.smtp.smtp_requests
         self.results["irc"] = self.irc.irc_requests
 
-        #self.results["pcap_parser"] = [self.parser]
+        self.results["pcap_parser"] = self.run2()
 
         return self.results
 

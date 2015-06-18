@@ -3,6 +3,15 @@ __author__ = 'targaryen'
 import struct
 import socket
 from lib.cuckoo.common.utils import convert_to_printable
+import tcp
+import udp
+import icmp
+
+try:
+    import dpkt
+    IS_DPKT = True
+except ImportError:
+    IS_DPKT = False
 
 class Ip:
 
@@ -10,6 +19,9 @@ class Ip:
         self.hosts = []
         # List containing all non-private IP addresses.
         self.unique_hosts = []
+        self.udp = udp.Udp()
+        self.tcp = tcp.Tcp(tcp)
+        self.icmp = icmp.Icmp()
 
     def _is_private_ip(self, ip):
         """Check if the IP belongs to private network blocks.
@@ -81,26 +93,6 @@ class Ip:
         except:
             pass
 
-    def dissect(self, ip):
-        pip = {}
-
-        pip["ver"] = ip.v_hl
-        pip["headsize"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
-        pip["tos"] = ip.tos
-        pip["pktsize"] = ip.len
-        pip["id"] = ip.id
-        pip["flags"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
-        pip["offset"] = ip.off
-        pip["ttl"] = ip.ttl
-        pip["prot"] = ip.p
-        pip["ipsum"] = ip.sum
-        pip["opts"] = ''  # setted this way on dpkt.ip.IP
-        pip["src"] = socket.inet_ntoa(ip.src)
-        pip["dst"] = socket.inet_ntoa(ip.dst)
-        if tcp:
-            pip["payload"] = tcp.dissect()
-
-        return pip
 
 
 

@@ -1,5 +1,6 @@
 __author__ = 'targaryen'
 
+import dns
 
 class Udp:
 
@@ -7,6 +8,7 @@ class Udp:
         # List containing all UDP packets.
         self.udp_connections = []
         self.udp_connections_seen = set()
+        self.dns = dns.Dns()
 
 
     def udp_dissect(self, conn, data, dns):
@@ -29,4 +31,5 @@ class Udp:
         if conn["dport"] == 53 or conn["sport"] == 53 or conn["dport"] == 5353 or conn["sport"] == 5353:
             if dns.check_dns(data):
                 return dns.add_dns(data)
+
 
