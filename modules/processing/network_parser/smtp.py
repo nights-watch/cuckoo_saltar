@@ -1,6 +1,5 @@
 __author__ = 'targaryen'
 
-
 class Smtp:
 
     def __init__(self):
@@ -13,5 +12,10 @@ class Smtp:
         return False
 
     @staticmethod
-    def dissect(data):
-        return {}
+    def dissect(smtp):
+        psmtp={}
+        psmtp["layer"] = 7
+        psmtp["protocol_name"] = "SMTP"
+        psmtp["data"] = smtp.data
+
+        return psmtp

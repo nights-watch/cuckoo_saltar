@@ -67,21 +67,23 @@ class Ip:
             if len(_tcp.data) > 0:
                 pip["payload"] = tcp.dissect(_tcp)
 
-                # if payload of IP is a package UDP
+        # if payload of IP is a package UDP
         elif udp.check(ip.p):
             _udp = ip.data
             if not isinstance(_udp, dpkt.udp.UDP):
                 _udp = dpkt.udp.UDP(_udp)
-                if len(_udp.data) > 0:
-                    pip["payload"] = udp.dissect(_udp)
+
+            if len(_udp.data) > 0:
+                pip["payload"] = udp.dissect(_udp)
 
         # if payload of IP is a package ICMP
         elif icmp.check(ip.p):
             _icmp = ip.data
             if not isinstance(_icmp, dpkt.icmp.ICMP):
                 _icmp = dpkt.icmp.ICMP(_icmp)
-                if len(_icmp.data) > 0:
-                    pip["payload"] = icmp.dissect(_icmp)  # Populate Dictionary ICMP founded and parsed
+
+            if len(_icmp.data) > 0:
+                pip["payload"] = icmp.dissect(_icmp)  # Populate Dictionary ICMP founded and parsed
         else:
             pip["payload"] = "unknown protocol on layer" + str(pip["layer"]+1)
 

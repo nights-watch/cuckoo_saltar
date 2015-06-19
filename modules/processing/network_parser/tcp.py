@@ -76,10 +76,13 @@ class Tcp:
         # SMTP.
         elif smtp.check(tcp):
             ptcp["payload"] = smtp.dissect(tcp.data)
+        # IRC
         elif irc.check(tcp):
             ptcp["payload"] = irc.dissect(tcp.data)
+        # DNS
         elif dns.check(tcp):
             ptcp["payload"] = dns.dissect(tcp.data)
+        # Unknown Protocol
         else:
             ptcp["payload"] = "unknown protocol on layer " + str(ptcp["layer"]+1)
 
