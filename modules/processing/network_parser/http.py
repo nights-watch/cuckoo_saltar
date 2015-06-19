@@ -1,6 +1,7 @@
 __author__ = 'targaryen'
 
 from lib.cuckoo.common.utils import convert_to_printable
+from lib.cuckoo.common.utils import is_printable
 from urlparse import urlunparse
 
 try:
@@ -15,14 +16,14 @@ class Http:
         pass
 
     @staticmethod
-    def check(tcpdata, destinationPort):
+    def check(tcpdata):
         """Checks the existence of HTTP Protocol in payload TCP.
         @param tcpdata: TCP payload.
         """
         try:
             r = dpkt.http.Request()
             r.method, r.version, r.uri = None, None, None
-            r.unpack(tcpdata, destinationPort)
+            r.unpack(tcpdata)
         except dpkt.dpkt.UnpackError:
             if not r.method is None or not r.version is None or \
                     not r.uri is None:
@@ -32,7 +33,7 @@ class Http:
         return True
 
     @staticmethod
-    def dissect(data, destinationPort):
+    def dissect(data):
         """
         Realize parser of payload of protocol TCP identified like HTTP protocol
 
@@ -40,8 +41,8 @@ class Http:
         :return: Dictionary with the headers and payload of protocol HTTP
         """
 
-        http_package = [] # List containing package.
-        header = {} # Dictionary of header
+        http_package = {} # List containing package.
+        #header = {}  # Dictionary of header
 
         try:
             http = dpkt.http.Request()
@@ -49,43 +50,30 @@ class Http:
         except dpkt.dpkt.UnpackError:
             pass
 
-        try:
-            http_package["version"] = convert_to_printable(http.version) #Version of protocol HTTP in use
-            http_package["method"] = convert_to_printable(http.method) #Method of request HTTP
+        http_package["protocol_name"] = 'HTTP'
+        http_package["layer"] = 7
+        http_package["version"] = http.version # Version of protocol HTTP in use
+        http_package["method"] = http.method # Method of request HTTP
+        http_package["header"]= http.headers # Add Header HTTP do http package hierarchy
 
-            # Parser HTTP headers, assuming it is not possible to determine the items in the header,
-            # converting the data of each attribute to readable format
-            for k in http.headers.iteritems():
-                header[k] = convert_to_printable(http.headers[k])
+        # Attribute HOST in header treatment
+        # The host attribute is checked for the treatment of HTTP requests that do not use the standard port,
+        # for example, instead of using the door 80, some web servers may respond to ports 8080, 8180, etc.
+        #if "host" in http.headers:
+        #    header["host"] = http.headers["host"]
+        #else:
+        #    header["host"] = ''
 
-            http_package["header"]= header # Add Header HTTP dictionary converted to printable String
+        # Manually deal with cases when destination port is not the default one,
+        # and it is  not included in host header.
+        #netloc = header["host"]
+        #if data.dport != 80 and ':' not in netloc:
+        #    netloc += ':' + str(http_package["port"])
 
-            # Attribute HOST in header treatment
-            # The host attribute is checked for the treatment of HTTP requests that do not use the standard port,
-            # for example, instead of using the door 80, some web servers may respond to ports 8080, 8180, etc.
-            if "host" in http.headers:
-                header["host"] = convert_to_printable(http.headers["host"])
-            else:
-                header["host"] = ""
-
-            # Destination port of TCP header
-            http_package["port"] = destinationPort
-
-            # Manually deal with cases when destination port is not the default one,
-            # and it is  not included in host header.
-            netloc = http_package["host"]
-            if destinationPort != 80 and ":" not in netloc:
-                netloc += ":" + str(http_package["port"])
-
-            # Mount the URI complete
-            http_package["uri"] = convert_to_printable(urlunparse(("http",
-                                                            netloc,
-                                                            http.uri, None,
-                                                            None, None)))
-            # Body of request/response HTTP, considered the payload of request HTTP. according of RFC 2616
-            http_package["body"] = convert_to_printable(http.body)
-
-        except Exception:
-            return False
+        # Mount the URI complete
+        #http_package["uri"] = urlunparse(("http", http.uri, None, None, None))
+        # Body of request/response HTTP, considered the payload of request HTTP. according of RFC 2616
+        http_package["body"] = http.body #DPKT only parse body of HTTP request when the method is POST. GET Method return a empty string
+        http_package["uri"] = http.uri #URI Request
 
         return http_package

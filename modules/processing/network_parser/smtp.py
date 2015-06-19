@@ -16,6 +16,6 @@ class Smtp:
         psmtp={}
         psmtp["layer"] = 7
         psmtp["protocol_name"] = "SMTP"
-        psmtp["data"] = smtp.data
+        psmtp["data"] = smtp
 
         return psmtp
