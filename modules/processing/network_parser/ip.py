@@ -34,11 +34,11 @@ class Ip:
         if isinstance(ip, dpkt.ip.IP):  # RFC 791
             pip["protocol_name"] = "IP4"
             pip["ver"] = ip.v_hl
-            pip["headsize"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
+            pip["headsize"] = (ip.v_hl & (0b00001111))  # TODO not present in dpkt.ip.IP (maybe computed)
             pip["tos"] = ip.tos
             pip["pktsize"] = ip.len
             pip["id"] = ip.id
-            pip["flags"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
+            pip["flags"] = (ip.off & (0b1110000000000000))>>13  # TODO not present in dpkt.ip.IP (maybe computed)
             pip["offset"] = ip.off
             pip["ttl"] = ip.ttl
             pip["prot"] = ip.p
