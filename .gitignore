@@ -32,5 +32,3 @@ modules/signatures/*
 data/yara/malware-families/*
 #ignoring analysis
 storage/*
-#ignoring itself
-.gitignore

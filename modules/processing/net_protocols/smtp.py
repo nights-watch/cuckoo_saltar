@@ -22,7 +22,7 @@ class Smtp:
     def process_smtp(self):
         """Process SMTP flow."""
         #RFC 2821
-        for  data in self.smtp_flow.iteritems():
+        for data in self.smtp_flow.iteritems():
             # Detect new SMTP flow.
             if data.startswith("EHLO") or data.startswith("HELO"):
                 self.smtp_requests.append({"raw": data})
