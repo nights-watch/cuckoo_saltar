@@ -5,6 +5,7 @@
 import os
 import socket
 import logging
+import parser
 from network_parser import ip as ipparser
 from net_protocols import smtp
 from net_protocols import http
@@ -14,6 +15,7 @@ from net_protocols import icmp
 from net_protocols import udp
 from net_protocols import tcp
 from net_protocols import ip
+
 
 from lib.cuckoo.common.abstracts import Processing
 from lib.cuckoo.common.config import Config
@@ -47,7 +49,7 @@ class Pcap:
         @param filepath: path to PCAP file
         """
         self.filepath = filepath
-
+        self.parser = parser.Parser(filepath)
         self.smtp = smtp.Smtp()
         self.http = http.Http()
         self.irc = irc.Irc()
@@ -60,69 +62,7 @@ class Pcap:
         # Dictionary containing all the results of this processing.
         self.results = {}
         # Parser of packages
-        self.parser = []
-
-    def readPcap(self):
-        """Process PCAP.
-        @return: dict with network analysis data.
-        """
-        log = logging.getLogger("Processing.Pcap")
-
-        if not IS_DPKT:
-            log.error("Python DPKT is not installed, aborting PCAP analysis.")
-            return None
-
-        if not os.path.exists(self.filepath):
-            log.warning("The PCAP file does not exist at path \"%s\".",
-                        self.filepath)
-            return None
-
-        if os.path.getsize(self.filepath) == 0:
-            log.error("The PCAP file at path \"%s\" is empty." % self.filepath)
-            return None
-
-        try:
-            file = open(self.filepath, "rb")
-            pcap = dpkt.pcap.Reader(file)
-            return pcap
-        except dpkt.dpkt.NeedData:
-            log.error("Unable to read PCAP file at path \"%s\".",
-                      self.filepath)
-        except (IOError, OSError):
-            log.error("Unable to open %s" % self.filepath)
-        except ValueError:
-            log.error("Unable to read PCAP file at path \"%s\". File is "
-                      "corrupted or wrong format." % self.filepath)
-        return None
-
-    def run2(self):
-        log = logging.getLogger("Processing.Pcap")
-        result = {}
-        pcap = self.readPcap()
-
-        if pcap is None:
-            return {}
-        pcapLine = 0
-
-        for ts, buf in pcap:
-            pcapLine += 1
-            ippars = ipparser.Ip()
-            try:
-                _ip = iplayer_from_raw(buf, pcap.datalink())
-                if ippars.checkv4(_ip) or ippars.checkv6(_ip):  # RFC 791
-                    result[pcapLine] = ippars.dissect(_ip)
-                else:
-                    result[pcapLine] = "unknown protocol on layer 3"
-                    continue
-            # except AttributeError:
-            #     print "atribute error"
-            #     continue
-            except dpkt.dpkt.NeedData:
-                continue
-            except Exception as e:
-                log.exception("Failed to process packet: %s", e)
-
-        return result
+        # self.parser = []
 
     def run(self):
         """Process PCAP.
@@ -306,7 +246,7 @@ class Pcap:
         self.results["smtp"] = self.smtp.smtp_requests
         self.results["irc"] = self.irc.irc_requests
 
-        self.results["pcap_parser"] = self.run2()
+        self.results["pcap_parser"] = self.parser.parse()
 
         return self.results
 
