@@ -28,6 +28,8 @@ class Ip:
 
     def dissect(self, ip):
         pip = {}
+        ip_flags = {}
+
 
         pip["layer"] = 3
 
@@ -38,8 +40,12 @@ class Ip:
             pip["tos"] = ip.tos
             pip["pktsize"] = ip.len
             pip["id"] = ip.id
-            pip["flags"] = (ip.off & (0b1110000000000000))>>13  # TODO not present in dpkt.ip.IP (maybe computed)
-            pip["offset"] = ip.off
+            #pip["flags"] = (ip.off & (0b1110000000000000))>>13  # TODO not present in dpkt.ip.IP (maybe computed)
+            ip_flags["reserved"] = (ip.off & (0b1000000000000000))>>15   # TODO not present in dpkt.ip.IP (maybe computed)
+            ip_flags["do_not_fragment"] = (ip.off & (0b01000000000000000))>>14  # TODO not present in dpkt.ip.IP (maybe computed)
+            ip_flags["more_fragments"] =(ip.off & (0b0010000000000000))>>13  # TODO not present in dpkt.ip.IP (maybe computed)
+            pip["flags"] = ip_flags
+            pip["offset"] = (ip.off & (0b0001111111111111))<<3
             pip["ttl"] = ip.ttl
             pip["prot"] = ip.p
             pip["ipsum"] = ip.sum
@@ -57,7 +63,6 @@ class Ip:
             pip["hoplim"] = ip.hlim
             pip["src"] = socket.inet_ntop(socket.AF_INET6, ip.src)
             pip["dst"] = socket.inet_ntop(socket.AF_INET6, ip.dst)
-
         if tcp.check(ip.p):
             _tcp = ip.data
             if not isinstance(_tcp, dpkt.tcp.TCP):
