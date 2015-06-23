@@ -13,7 +13,7 @@
 #     Writing permissions in /opt. Commands:
 #          sudo chown $USER:root -R /opt/
 #          sudo chmod 755 -R /opt/
-#          * * * * * cd /opt/cuckoo_saltar/scripts; export DISPLAY:=0 && nohup ./script.sh &
+#          * * * * * cd /opt/cuckoo_saltar/scripts; export DISPLAY=:0 && nohup ./script.sh &
 #     iptables script already executed in the machine, necessary for the 
 #     VM network to work.
 # ------------------------------------------------------------------
@@ -26,8 +26,10 @@ SUBMIT_SCRIPT=$CUCKOO_PATH/utils/submit.py
 MALWARE_PATH=$HOME/malwares_folder
 
 LOG_PATH=/opt/logs
-LOGFILE=log.txt
+LOG_FILE=log.txt
+CUCKOO_LOG_FILE=cuckoo_log.txt
 PYTHON=python
+CUCKOO=cuckoo.py
 
 SERVICE=cuckoo
 TIME=$(date +"%T")
@@ -57,13 +59,13 @@ if [ ! -d $LOG_PATH ]; then
 	mkdir $LOG_PATH -m 775
 fi
 
-if ps ax | grep -i cuckoo | grep -v grep > /dev/null; then
+if ps ax | grep -i $CUCKOO | grep -v grep > /dev/null; then
     echo -e $TIME  " $SERVICE service is running already. Exiting...\n"
 else
 	startingVMs
 	$PYTHON $CUCKOO_SCRIPT --clean
 	$PYTHON $SUBMIT_SCRIPT $MALWARE_PATH --enforce-timeout
-	$PYTHON $CUCKOO_SCRIPT -d >> $LOG_PATH/$LOGFILE 2>&1 # variavel para que o cron escreva o stream de dados no log.txt. 1 para STDOUT, 2 para STDERR.
+	$PYTHON $CUCKOO_SCRIPT -d >> $LOG_PATH/$CUCKOO_LOG_FILE 2>&1 # variavel para que o cron escreva o stream de dados no log.txt. 1 para STDOUT, 2 para STDERR.
 fi
 
 

@@ -8,11 +8,12 @@
 #
 # Dependency:
 # ------------------------------------------------------------------
+CUCKOO=cuckoo.py
 
-if ps ax | grep -v grep | grep cuckoo > /dev/null; then
+if ps ax | grep -i $CUCKOO | grep -v grep > /dev/null; then
 	PID=$(pgrep python)
  	echo "An instance of cuckoo was found (PID "$PID"). Killing..."
- 	kill -2 $PID
+ 	kill -9 $PID
  else
  	echo "Instance not found."
  fi

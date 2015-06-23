@@ -1,6 +1,6 @@
 #!/bin/bash
 # ------------------------------------------------------------------
-# [Author] Hialo Muniz, Vinicius Franco
+# [Author] Hialo Muniz
 #  Description:
 #
 #
