@@ -30,7 +30,6 @@ class Ip:
         pip = {}
         ip_flags = {}
 
-
         pip["layer"] = 3
 
         if isinstance(ip, dpkt.ip.IP):  # RFC 791

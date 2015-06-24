@@ -33,6 +33,8 @@ class Parser:
                 _ip = iplayer_from_raw(buf, pcap.datalink())
                 if ippars.checkv4(_ip) or ippars.checkv6(_ip):  # RFC 791
                     result[pcapLine] = ippars.dissect(_ip)
+                elif isinstance(_ip, dpkt.arp.ARP):
+                    result[pcapLine] = {"layer": 3, "protocol_name": "ARP"}
                 else:
                     result[pcapLine] = "unknown protocol on layer 3"
                     continue
