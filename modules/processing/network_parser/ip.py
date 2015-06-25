@@ -4,6 +4,7 @@ import socket
 from tcp import Tcp as tcp
 from udp import Udp as udp
 from icmp import Icmp as icmp
+from igmp import Igmp as igmp
 
 try:
     import dpkt
@@ -81,13 +82,25 @@ class Ip:
                 pip["payload"] = udp.dissect(_udp)
 
         # if payload of IP is a package ICMP
-        elif icmp.check(ip.p):
+        elif icmp.checkv4(ip.p) or icmp.checkv6(ip.p):
             _icmp = ip.data
             if not isinstance(_icmp, dpkt.icmp.ICMP):
                 _icmp = dpkt.icmp.ICMP(_icmp)
 
             if len(_icmp.data) > 0:
                 pip["payload"] = icmp.dissect(_icmp)  # Populate Dictionary ICMP founded and parsed
+
+        # if payload of IP is a package IGMP
+        elif igmp.checkv2(ip.p):
+                _igmp=ip.data
+                if not isinstance(_igmp, dpkt.igmp.IGMP):
+                    _igmp=dpkt.igmp.IGMP(_igmp)
+
+                    # if exists data of type IGMP realize parser
+                    # RFC 3376 - IGMPv2
+                    _igmp=dpkt.igmp.IGMP(_igmp)
+                    if len(_igmp.data) > 0:
+                        pip["payload"] = igmp.dissect(_igmp)
         else:
             pip["payload"] = "unknown protocol on layer" + str(pip["layer"]+1)
 
