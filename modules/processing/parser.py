@@ -19,7 +19,8 @@ class Parser:
         pass
 
     def parse(self):
-        log = logging.getLogger("Processing.Pcap")
+        logging.basicConfig()
+        log = logging.getLogger("Processing_Pcap")
         result = {}
         pcap = self.readPcap()
 
@@ -45,7 +46,7 @@ class Parser:
             except dpkt.dpkt.NeedData:
                 continue
             except Exception as e:
-                log.exception("Failed to process packet: %s", e)
+                log.exception("Failed to process packet " + str(pcapLine) + ": %s", e)
 
         return result
 

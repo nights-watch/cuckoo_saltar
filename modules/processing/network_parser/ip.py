@@ -92,15 +92,16 @@ class Ip:
 
         # if payload of IP is a package IGMP
         elif igmp.checkv2(ip.p):
-                _igmp=ip.data
-                if not isinstance(_igmp, dpkt.igmp.IGMP):
-                    _igmp=dpkt.igmp.IGMP(_igmp)
 
-                    # if exists data of type IGMP realize parser
-                    # RFC 3376 - IGMPv2
-                    _igmp=dpkt.igmp.IGMP(_igmp)
-                    if len(_igmp.data) > 0:
-                        pip["payload"] = igmp.dissect(_igmp)
+            _igmp = ip.p
+            if not isinstance(_igmp, dpkt.igmp.IGMP):
+                _igmp=dpkt.igmp.IGMP(_igmp)
+
+                # if exists data of type IGMP realize parser
+                # RFC 3376 - IGMPv2
+                _igmp = dpkt.igmp.IGMP(_igmp)
+                if len(_igmp.data) > 0:
+                    pip["payload"] = igmp.dissect(_igmp)
         else:
             pip["payload"] = "unknown protocol on layer" + str(pip["layer"]+1)
 

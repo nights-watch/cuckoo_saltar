@@ -12,7 +12,8 @@ class Igmp:
     def __init__(self):
         pass
 
-    def checkv2(self, data):
+    @staticmethod
+    def checkv2(data):
         if isinstance(data, dpkt.igmp.IGMP):  # RFC 2236 - IGMP v2
             return True
         return False
@@ -22,7 +23,8 @@ class Igmp:
     #        return True
     #    return False
 
-    def dissect(self, igmp):
+    @staticmethod
+    def dissect(igmp):
 
         pigmp = {}
 

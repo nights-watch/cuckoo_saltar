@@ -13,12 +13,14 @@ class Icmp:
     def __init__(self):
         pass
 
-    def checkv4(self, data):
+    @staticmethod
+    def checkv4(data):
         if isinstance(data, dpkt.icmp.ICMP):  # RFC 792
             return True
         return False
 
-    def checkv6(self, data):
+    @staticmethod
+    def checkv6(data):
         if isinstance(data, dpkt.icmp6.ICMP6):  # RFC 4884
             return True
         return False
