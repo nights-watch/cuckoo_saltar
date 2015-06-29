@@ -3,6 +3,7 @@ __author__ = 'targaryen'
 import logging
 import os
 from network_parser import ip as ipparser
+from network_parser import arp
 from lib.cuckoo.common.exceptions import CuckooProcessingError
 
 try:
@@ -29,10 +30,13 @@ class Parser:
         for ts, buf in pcap:
             pcapLine += 1
             ippars = ipparser.Ip()
+            arppars = arp.Arp()
             try:
                 _ip = iplayer_from_raw(buf, pcap.datalink())
                 if ippars.checkv4(_ip) or ippars.checkv6(_ip):  # RFC 791
                     result[pcapLine] = ippars.dissect(_ip)
+                elif arppars.check(_ip):
+                    result[pcapLine] = arppars.dissect(_ip)
                 else:
                     result[pcapLine] = "unknown protocol on layer 3"
                     continue
