@@ -4,6 +4,7 @@ from http import Http as http
 from smtp import Smtp as smtp
 from irc import Irc as irc
 from dns import Dns as dns
+from ssl import Ssl as ssl
 
 try:
     import dpkt
@@ -24,29 +25,30 @@ class Tcp:
         return False
 
     @staticmethod
-    def tcp_flags(flag):
-        """Identify flag TCP of a packet."""
-        flagreturn = ''
-        if flag == dpkt.tcp.TH_FIN:
-            flagreturn = "FIN"
-        elif flag == dpkt.tcp.TH_SYN:
-            flagreturn = "SYN"
-        elif flag == dpkt.tcp.TH_RST:
-            flagreturn = "RST"
-        elif flag == dpkt.tcp.TH_PUSH:
-            flagreturn = "PUS"
-        elif flag == dpkt.tcp.TH_ACK:
-            flagreturn = "ACK"
-        elif flag == dpkt.tcp.TH_URG:
-            flagreturn = "URG"
-        elif flag == dpkt.tcp.TH_ECE:
-            flagreturn = "ECE"
-        elif flag == dpkt.tcp.TH_CWR:
-            flagreturn = "CWR"
-        else:
-            flagreturn = "UNK"
+    def tcp_flags(flags):
+        """Identify flags TCP of a packet."""
+        # Initializing all flags with '0'
+        all_flags = {"NS": 0, "CWR": 0, "ECE": 0, "URG": 0, "ACK": 0, "PSH": 0, "RST": 0, "SYN": 0, "FIN": 0}
+        if (flags & 0b000000000001) == dpkt.tcp.TH_FIN:
+            all_flags["FIN"] = 1
+        if (flags & 0b000000000010) == dpkt.tcp.TH_SYN:
+            all_flags["SYN"] = 1
+        if (flags & 0b000000000100) == dpkt.tcp.TH_RST:
+            all_flags["RST"] = 1
+        if (flags & 0b000000001000) == dpkt.tcp.TH_PUSH:
+            all_flags["PSH"] = 1
+        if (flags & 0b000000010000) == dpkt.tcp.TH_ACK:
+            all_flags["ACK"] = 1
+        if (flags & 0b000000100000) == dpkt.tcp.TH_URG:
+            all_flags["URG"] = 1
+        if (flags & 0b000001000000) == dpkt.tcp.TH_ECE:
+            all_flags["ECE"] = 1
+        if (flags & 0b000010000000) == dpkt.tcp.TH_CWR:
+            all_flags["CWR"] = 1
+        if (flags & 0b000100000000) == 0x100:
+            all_flags["NS"] = 1
 
-        return flagreturn
+        return all_flags
 
     @staticmethod
     def dissect(tcp):
@@ -60,15 +62,19 @@ class Tcp:
         ptcp["sport"] = tcp.sport  # Source port
         ptcp["dport"] = tcp.dport  # Destination port
         ptcp["seqnum"] = tcp.seq  # Sequence number
-        ptcp["acknum"] = tcp.flags  # Acknowledge number
+        ptcp["acknum"] = tcp.ack  # Acknowledge number
         ptcp["off"] = tcp.off  # Data offset
         ptcp["reserved"] = 0  # Reserved - always 0
-        ptcp["cb"] = Tcp.tcp_flags(tcp.data)  # Verify flag of control bits
+        ptcp["flags"] = Tcp.tcp_flags(tcp.flags)  # Verify flags of Control Bits (URG,ACK,PSH,RST,SYN,FIN)
         ptcp["win"] = tcp.win  # Window
         ptcp["cksum"] = tcp.sum  # Checksum
         ptcp["urp"] = tcp.urp  # Urgent Pointer
         ptcp["options"] = tcp.opts  # Options
         ptcp["padding"] = ''  # TODO not present in dpkt.ip.IP (maybe computed)
+
+        #TLS/SSL
+        # TLS/SSL
+
 
         # HTTP
         if http.check(tcp.data):

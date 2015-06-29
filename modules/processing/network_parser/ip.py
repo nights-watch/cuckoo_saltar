@@ -67,10 +67,8 @@ class Ip:
             _tcp = ip.data
             if not isinstance(_tcp, dpkt.tcp.TCP):
                 _tcp = dpkt.tcp.TCP(_tcp)
-            # if exists data of type TCP realize parser
             # RFC 793
-            if len(_tcp.data) > 0:
-                pip["payload"] = tcp.dissect(_tcp)
+            pip["payload"] = tcp.dissect(_tcp)
 
         # if payload of IP is a package UDP
         elif udp.check(ip.p):
