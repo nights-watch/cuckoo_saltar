@@ -24,6 +24,7 @@ CUCKOO_PATH=/opt/cuckoo_saltar
 CUCKOO_SCRIPT=$CUCKOO_PATH/cuckoo.py
 SUBMIT_SCRIPT=$CUCKOO_PATH/utils/submit.py
 MALWARE_PATH=$HOME/malwares_folder
+ANALYZED_FOLDER=$CUCKOO_PATH/binaries	
 
 LOG_PATH=/opt/logs
 LOG_FILE=log.txt
@@ -54,16 +55,30 @@ function startingVMs(){
 
 ##############################################################
 
+function movingAnalyzedBinaries(){
+	if [ ! -d $ANALYZED_FOLDER ]; then
+		echo -e $TIME " Analyzed directory doesn't exist. Creating..."
+		mkdir $ANALYZED_FOLDER -pm 775
+	fi
+
+	mv -f $MALWARE_PATH/* $ANALYZED_FOLDER
+}
+
+##############################################################
+
+NOW=$(date)
+echo -e $NOW
+
 if [ ! -d $LOG_PATH ]; then
 	echo -e $TIME " Log directory doesn't exist. Creating..."
-	mkdir $LOG_PATH -m 775
+	mkdir $LOG_PATH -pm 775
 fi
 
 if ps ax | grep -i $CUCKOO | grep -v grep > /dev/null; then
-    echo -e $TIME  " $SERVICE service is running already. Exiting...\n"
+    echo -e $TIME  "$SERVICE service is running already. Exiting...\n"
 else
 	startingVMs
-	$PYTHON $CUCKOO_SCRIPT --clean
+	#$PYTHON $CUCKOO_SCRIPT --clean
 	$PYTHON $SUBMIT_SCRIPT $MALWARE_PATH --enforce-timeout
 	$PYTHON $CUCKOO_SCRIPT -d >> $LOG_PATH/$CUCKOO_LOG_FILE 2>&1 # variavel para que o cron escreva o stream de dados no log.txt. 1 para STDOUT, 2 para STDERR.
 fi
