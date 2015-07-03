@@ -23,7 +23,7 @@ class JsonDump(Report):
         try:
             
             del results['behavior']
-            del results['procmemory']
+            #del results['procmemory']
             for tag in results['dropped']:
                 del tag['sha1']
                 del tag['crc32']
@@ -35,7 +35,7 @@ class JsonDump(Report):
                 del tag['size']
                 
             
-                    
+
             path = os.path.join(self.reports_path, "report.json")
             with codecs.open(path, "w", "utf-8") as report:
                 json.dump(results, report, sort_keys=False,

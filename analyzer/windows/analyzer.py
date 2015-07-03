@@ -638,7 +638,7 @@ class Analyzer:
                     # is executed at every loop's iteration. If such function
                     # returns False, it means that it requested the analysis
                     # to be terminate.
-                    if not pack.check():
+                    if not check():
                         log.info("The analysis package requested the "
                                  "termination of the analysis.")
                         break
