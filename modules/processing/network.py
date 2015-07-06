@@ -9,7 +9,8 @@ import socket
 import struct
 import tempfile
 import urlparse
-import parser
+
+
 
 from lib.cuckoo.common.abstracts import Processing
 from lib.cuckoo.common.config import Config
@@ -18,6 +19,7 @@ from lib.cuckoo.common.irc import ircMessage
 from lib.cuckoo.common.objects import File
 from lib.cuckoo.common.utils import convert_to_printable
 from lib.cuckoo.common.exceptions import CuckooProcessingError
+from network_parser import ipinfo, tshark
 
 
 try:
@@ -74,8 +76,7 @@ class Pcap:
         self.irc_requests = []
         # Dictionary containing all the results of this processing.
         self.results = {}
-        # Parser object that parse PCAP filo to Json report
-        self.parser = parser.Parser(filepath)
+
 
     def _dns_gethostbyname(self, name):
         """Get host by name wrapper.
@@ -349,6 +350,19 @@ class Pcap:
         self.unique_domains.append({"domain": domain,
                                     "ip": self._dns_gethostbyname(domain)})
 
+    def _domain_ip(self,domains):
+        """
+
+        :param domain:
+        :return:
+        """
+        ipdomain=[]
+
+        for domain in domains:
+            ipdomain.append(domain["ip"])
+        return ipdomain
+
+
     def _check_http(self, tcpdata):
         """Checks for HTTP traffic.
         @param tcpdata: TCP data flow.
@@ -468,9 +482,12 @@ class Pcap:
         """Process PCAP.
         @return: dict with network analysis data.
         """
+        ip_info = ipinfo.Ipinfo()
+        t_shark = tshark.Tshark()
 
         try:
             file = open(self.filepath, "rb")
+
         except (IOError, OSError):
             log.error("Unable to open %s" % self.filepath)
             return self.results
@@ -560,8 +577,11 @@ class Pcap:
         # Post processors for reconstructed flows.
         self._process_smtp()
 
+
         # Build results dict.
         self.results["hosts"] = self.unique_hosts
+        self.results["geo_hosts"] = ip_info.info(self.unique_hosts)
+        self.results["geo_domains"] = ip_info.info(self._domain_ip(self.unique_domains))
         self.results["domains"] = self.unique_domains
         self.results["tcp"] = [conn_from_flowtuple(i) for i in self.tcp_connections]
         self.results["udp"] = [conn_from_flowtuple(i) for i in self.udp_connections]
@@ -570,7 +590,8 @@ class Pcap:
         self.results["dns"] = self.dns_requests.values()
         self.results["smtp"] = self.smtp_requests
         self.results["irc"] = self.irc_requests
-        self.results["parser"] = self.parser.parse()
+        self.results["parser"] = t_shark.dissect(self.filepath)
+
 
         return self.results
 
