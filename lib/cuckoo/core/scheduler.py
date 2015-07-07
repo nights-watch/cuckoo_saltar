@@ -421,13 +421,13 @@ class Scheduler:
         self.total_analysis_count = 0
 
     def is_connected(self):
-	try:
-	    host = socket.gethostbyname("www.google.com")
-	    s = socket.create_connection((host, 80), 2)
-	    return True
-	except socket.gaierror, socket.error:
-	    pass
-	return False
+        try:
+            host = socket.gethostbyname("www.google.com")
+            s = socket.create_connection((host, 80), 2)
+            return True
+        except socket.gaierror, socket.error:
+            pass
+        return False
 
     def initialize(self):
         """Initialize the machine manager."""
