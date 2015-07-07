@@ -580,8 +580,6 @@ class Pcap:
 
         # Build results dict.
         self.results["hosts"] = self.unique_hosts
-        self.results["geo_hosts"] = ip_info.info(self.unique_hosts)
-        self.results["geo_domains"] = ip_info.info(self._domain_ip(self.unique_domains))
         self.results["domains"] = self.unique_domains
         self.results["tcp"] = [conn_from_flowtuple(i) for i in self.tcp_connections]
         self.results["udp"] = [conn_from_flowtuple(i) for i in self.udp_connections]
@@ -590,7 +588,9 @@ class Pcap:
         self.results["dns"] = self.dns_requests.values()
         self.results["smtp"] = self.smtp_requests
         self.results["irc"] = self.irc_requests
-        self.results["parser"] = t_shark.dissect(self.filepath)
+        #self.results["geo_hosts"] = ip_info.info(self.unique_hosts)
+        #self.results["geo_domains"] = ip_info.info(self._domain_ip(self.unique_domains))
+        #self.results["parser"] = t_shark.dissect(self.filepath)
 
 
         return self.results
