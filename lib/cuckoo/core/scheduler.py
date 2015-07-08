@@ -423,9 +423,10 @@ class Scheduler:
     def is_connected(self):
         try:
             host = socket.gethostbyname("www.google.com")
-            s = socket.create_connection((host, 80), 2)
+            s = socket.create_connection((host, 80), 5)
+            s.close()
             return True
-        except socket.gaierror, socket.error:
+        except socket.gaierror, socket.error, socket.herror, socket.timeout:
             pass
         return False
 
