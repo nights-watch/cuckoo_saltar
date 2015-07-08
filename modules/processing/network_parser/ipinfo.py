@@ -2,6 +2,7 @@ __author__ = 'targaryen'
 
 import json
 import urllib2
+import socket
 
 
 class Ipinfo:
@@ -23,15 +24,23 @@ class Ipinfo:
         listHosts=[]
         for host in hosts:
             try:
-                json_str = urllib2.urlopen(winterfellServer + host).read()
+                print host
+                json_str = urllib2.urlopen(winterfellServer + host, timeout=5).read()
                 json_dict = json.loads(json_str)
                 listHosts.append(json_dict)
-            except urllib2.HTTPError, err:
+                print host + " DONE"
+
+            except urllib2.URLError, err:
                 print host + " " + err.read()
                 errdict = {host: err.read()}
                 listHosts.append(errdict)
                 pass
 
+            except socket.timeout, err:
+                errdict = {host: "Socket TimeOut"}
+                print errdict
+                listHosts.append(errdict)
+                pass
 
 
         return listHosts
