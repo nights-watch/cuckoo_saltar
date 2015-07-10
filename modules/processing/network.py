@@ -581,15 +581,6 @@ class Pcap:
         # Build results dict.
         self.results["hosts"] = self.unique_hosts
         self.results["domains"] = self.unique_domains
-
-        hostlist=""
-        for host in self.unique_hosts:
-            hostlist+=host+","
-        hostlist=hostlist[:-1]
-
-        with open("/home/stark/martell/hosts.txt","w") as file:
-            file.write(hostlist)
-
         self.results["tcp"] = [conn_from_flowtuple(i) for i in self.tcp_connections]
         self.results["udp"] = [conn_from_flowtuple(i) for i in self.udp_connections]
         self.results["icmp"] = self.icmp_requests
