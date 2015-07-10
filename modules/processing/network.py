@@ -581,6 +581,15 @@ class Pcap:
         # Build results dict.
         self.results["hosts"] = self.unique_hosts
         self.results["domains"] = self.unique_domains
+
+        hostlist=""
+        for host in self.unique_hosts:
+            hostlist+=host+","
+        hostlist=hostlist[:-1]
+
+        with open("/home/stark/martell/hosts.txt","w") as file:
+            file.write(hostlist)
+
         self.results["tcp"] = [conn_from_flowtuple(i) for i in self.tcp_connections]
         self.results["udp"] = [conn_from_flowtuple(i) for i in self.udp_connections]
         self.results["icmp"] = self.icmp_requests
@@ -588,8 +597,8 @@ class Pcap:
         self.results["dns"] = self.dns_requests.values()
         self.results["smtp"] = self.smtp_requests
         self.results["irc"] = self.irc_requests
-        #self.results["geo_hosts"] = ip_info.info(self.unique_hosts)
-        #self.results["geo_domains"] = ip_info.info(self._domain_ip(self.unique_domains))
+        self.results["geo_hosts"] = ip_info.info(self.unique_hosts)
+        self.results["geo_domains"] = ip_info.info(self._domain_ip(self.unique_domains))
         #self.results["parser"] = t_shark.dissect(self.filepath)
 
 
@@ -614,7 +623,9 @@ class NetworkAnalysis(Processing):
             log.error("The PCAP file at path \"%s\" is empty." % self.pcap_path)
             return {}
 
-        sorted_path = self.pcap_path.replace("dump.", "dump_sorted.")
+        # sorted_path = self.pcap_path.replace("dump.", "dump_sorted.")
+        sorted_path = "/mnt/hauntedforest/" + os.path.basename(self.task["target"])[:-4] + ".pcap"
+
         if Config().processing.sort_pcap:
             sort_pcap(self.pcap_path, sorted_path)
             results = Pcap(sorted_path).run()

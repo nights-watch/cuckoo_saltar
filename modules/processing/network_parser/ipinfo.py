@@ -1,8 +1,7 @@
 __author__ = 'targaryen'
 
-import json
-import urllib2
 import socket
+import ipwhois
 
 
 class Ipinfo:
@@ -20,29 +19,16 @@ class Ipinfo:
         :param hosts: list of hosts to verification
         :return: list of hosts with detailed information
         """
-        winterfellServer = "http://46.101.169.4/"
-        listHosts=[]
+        hosts_lists = {}
         for host in hosts:
             try:
-                print host
-                json_str = urllib2.urlopen(winterfellServer + host, timeout=5).read()
-                json_dict = json.loads(json_str)
-                listHosts.append(json_dict)
-                print host + " DONE"
-
-            except urllib2.URLError, err:
-                print host + " " + err.read()
-                errdict = {host: err.read()}
-                listHosts.append(errdict)
+                i = ipwhois.IPWhois(host)
+                hosts_lists[host] = i.lookup_rws()
+            except Exception, e:
+                hosts_lists[host] = "lookup failed"
+                print e
                 pass
 
-            except socket.timeout, err:
-                errdict = {host: "Socket TimeOut"}
-                print errdict
-                listHosts.append(errdict)
-                pass
-
-
-        return listHosts
+        return hosts_lists
 
 
