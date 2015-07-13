@@ -615,7 +615,12 @@ class NetworkAnalysis(Processing):
             return {}
 
         # sorted_path = self.pcap_path.replace("dump.", "dump_sorted.")
-        sorted_path = "/mnt/hauntedforest/" + os.path.basename(self.task["target"])[:-4] + ".pcap"
+        # sorted_path = "/mnt/hauntedforest/" + os.path.basename(self.task["target"])[:-4] + ".pcap"
+
+        if not os.path.exists("/opt/pcaps/"):
+            os.makedirs("/opt/pcaps/")
+
+        sorted_path = "/opt/pcaps/" + os.path.basename(self.task["target"])[:-4] + ".pcap"
 
         if Config().processing.sort_pcap:
             sort_pcap(self.pcap_path, sorted_path)
