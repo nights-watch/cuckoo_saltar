@@ -426,9 +426,9 @@ class Scheduler:
             s = socket.create_connection((host, 80), 5)
             s.close()
             return True
-        except socket.gaierror, socket.error:
+        except (socket.timeout, socket.error):
             return False
-        except socket.herror, socket.timeout:
+        except (socket.herror, socket.gaierror):
             return False
 
     def initialize(self):
