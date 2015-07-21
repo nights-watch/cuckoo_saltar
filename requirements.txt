@@ -6,3 +6,4 @@ pefile
 django
 chardet
 nose
+virustotal
