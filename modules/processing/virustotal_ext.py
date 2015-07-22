@@ -2,6 +2,7 @@ __author__ = 'targaryen'
 import virustotal
 import operator
 from lib.cuckoo.common.abstracts import Processing
+from name_generator.name_generator import Guesser
 
 CHARS = ['/', ':','-', '!', '_']
 
@@ -31,6 +32,9 @@ class VirusTotal(Processing):
         out['tags'] = [x[0] for x in sorted_tags[-5:] ]
         out['tags_weight'] = [x[1] for x in sorted_tags[-5:] ]
         return out
+
+    def do_advanced_filter(self, target):
+        return Guesser().guess_everything(target)
 
     def run(self):
 
@@ -65,8 +69,7 @@ class VirusTotal(Processing):
         # apply classification
         if simple_classification:
             result['simple_classification'] = self.do_simple_filter(scans)
-        
         if advanced_classification:
-            pass
+            result['advanced_classification'] = self.do_advanced_filter(scans)
 
         return result
